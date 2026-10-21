@@ -32,6 +32,7 @@ from urllib.parse import quote
 
 import candidates
 import config
+import params
 from texts import t
 
 HF = config.get("huggingface", "cli", "hf")
@@ -203,8 +204,11 @@ def quant_tag(path):
     return found.group(1) if found else stem
 
 
-def pick(repo, listing):
+def pick(repo, listing, want=""):
     """(quant tag, weight files, extra files, fits) for the best weight set.
+
+    want = a quant tag set by hand in the store (`quant_override`), for models the size rule cannot
+    judge (e.g. a huge embedding table that stays memory-mapped): that set is taken as it is.
 
     A Q4-class quant in QUANTS order when one fits; otherwise the largest weight set (any quant or
     naming) that fits; otherwise the smallest set, with fits False. None when the repo has no GGUF weights."""
@@ -220,7 +224,8 @@ def pick(repo, listing):
     rank = lambda parts: next((i for i, tag in enumerate(QUANTS)
                                if re.search(rf"(^|[-_.]){tag}([-_.]|$)", Path(parts[0]).name, re.I)), len(QUANTS))
     ordered = sorted(sets.values(), key=lambda parts: (rank(parts), -gb(parts)))
-    parts = next((s for s in ordered if fits(repo, gb(s))), None)
+    wanted = [s for s in ordered if want and quant_tag(s[0]).lower() == want.lower()]
+    parts = wanted[0] if wanted else next((s for s in ordered if fits(repo, gb(s))), None)
     fit = parts is not None
     parts = parts or min(sets.values(), key=gb)
     mmproj = sorted((p for p in listing if "mmproj" in p.lower()),
@@ -246,8 +251,8 @@ def model_name(repo):
 def fits(repo, gb):
     if gb <= FIT_GB:
         return True
-    active = re.search(r"A(\d+(?:\.\d+)?)B", repo)
-    return gb <= OFFLOAD_GB and bool(active) and float(active.group(1)) <= MAX_ACTIVE_B
+    active = params.active_b(repo)  # the name, else the model card or its base model's
+    return gb <= OFFLOAD_GB and bool(active) and active <= MAX_ACTIVE_B
 
 
 def main():
@@ -279,7 +284,7 @@ def main():
             print(f"{repo}: listing failed: {exc}", file=sys.stderr)
             continue
         listing = {p: s for p, s in full.items() if p.lower().endswith(".gguf")}
-        chosen = pick(repo, listing)
+        chosen = pick(repo, listing, c.get("quant_override", ""))
         if not chosen:
             try:
                 label, gb, keep, why = vllm_pick(repo, full)

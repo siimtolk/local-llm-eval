@@ -25,6 +25,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 import config
+import params
 from short_links import link_lines
 from web import ATOM, clean, community, get, parse_date
 
@@ -51,6 +52,7 @@ TEXT_PIPELINES = {"text-generation", "image-text-to-text", None}
 UNCENSORED = re.compile(r"uncensored|abliterat|heretic|hauhau|derestrict|unalign|dealign", re.I)
 NOT_A_MODEL = re.compile(r"lora|adapter|embed|reward|judge|classif|\bocr\b|guard|draft|eagle|mtp-head", re.I)
 GB_PER_B = 0.56  # a Q4-class quant (IQ4_XS-Q4_K_M) is about 4.5 bits per weight
+GB_PER_B_MOE_MIN = 0.44  # an IQ3-class quant (~3.5 bits): the smallest a large offloaded MoE is tried at
 FIT_GB = config.get("machine", "fit_gb")  # weights that leave room for 128k context in VRAM
 OFFLOAD_GB = config.get("machine", "offload_gb")  # a MoE this size still runs with its experts in system RAM
 OFFLOAD_MAX_ACTIVE_B = config.get("machine", "max_active_b")  # more active parameters than this is too slow from RAM
@@ -75,8 +77,13 @@ def billions(model):
     if not total:
         counted = (model.get("safetensors") or {}).get("total") or (model.get("gguf") or {}).get("total")
         total = counted / 1e9 if counted else None
-    active = re.search(r"(?<![\w.])A(\d+(?:\.\d+)?)B\b", name, re.I)
-    return total, float(active.group(1)) if active else None
+    active = params.NAME.search(name)
+    active = float(active.group(1)) if active else None
+    # The name rarely says it for new releases ("Qwen3.8-Flash-Next"): then the card (or the base
+    # model's) does. Looked up only for models too big for VRAM, where it decides the fit.
+    if active is None and total and total * GB_PER_B > FIT_GB:
+        active = params.active_b(model["id"])
+    return total, active
 
 
 def base_of(model):
@@ -100,7 +107,8 @@ def fit(model):
     gb = total * GB_PER_B
     if gb <= FIT_GB:
         return "fits"
-    if gb <= OFFLOAD_GB and active and active <= OFFLOAD_MAX_ACTIVE_B:
+    # A big MoE with few active parameters runs with its experts in RAM, at a 3-bit quant if Q4 is too big.
+    if active and active <= OFFLOAD_MAX_ACTIVE_B and total * GB_PER_B_MOE_MIN <= OFFLOAD_GB:
         return "offload"
     return None
 
@@ -187,7 +195,8 @@ def build(dry=False):
         batch.append({
             "id": m["id"], "base": base if base != m["id"] else None, "created": created.date().isoformat(),
             "params": f"{total:.0f}B" + (f" total, {active:g}B active (MoE)" if active else " dense"),
-            "size": f"~{total * GB_PER_B:.0f} GB at Q4", "fit": where,
+            "size": f"~{total * GB_PER_B:.0f} GB at Q4" + (f", ~{total * GB_PER_B_MOE_MIN:.0f} GB at IQ3"
+                                                           if total * GB_PER_B > OFFLOAD_GB else ""), "fit": where,
             "uncensored": bool(UNCENSORED.search(m["id"]) or UNCENSORED.search(" ".join(m.get("tags") or []))),
             "gguf": "gguf" in (m.get("tags") or []) or "gguf" in m["id"].lower(),
             "likes": m.get("likes") or 0, "downloads": m.get("downloads") or 0,
