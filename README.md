@@ -62,12 +62,14 @@ bin/serve health <model> [--port N] [--backend llamacpp|vllm]
 
 plus two production hooks: one that stops the production server and waits for free GPUs, and one
 that brings it back if it is not answering (idempotent). This repo talks to nothing else of the
-serving side, apart from the HTTP ports.
+serving side, apart from the HTTP ports. The reference machine's serving repo is not public;
+any wrapper around llama.cpp or vLLM that provides these three commands works.
 
 ```bash
 git clone <this repo> && cd local-llm-eval
 cp local.example.toml local.toml       # fill in paths, schedule, notify, publishers, machine
 ln -sf ../../tools/leak_check.sh .git/hooks/pre-commit
+python3 tools/agent_settings.py           # the nightly agent's permissions, from local.toml
 
 python3 bench/bench.py --label my-model --base-url http://127.0.0.1:8080 --api-key-file key.txt
 python3 bench/bench.py --label my-model --only judge,extract      # a short run

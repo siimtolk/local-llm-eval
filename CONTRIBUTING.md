@@ -10,7 +10,7 @@
   machine go in `.leak-patterns.local`. CI runs the same check plus gitleaks on every push.
 - **Checks without GPUs:**
   ```bash
-  python -m py_compile bench/*.py pipeline/*.py tools/*.py
+  python3 -m py_compile bench/*.py pipeline/*.py tools/*.py
   python3 bench/bench.py --help
   python3 pipeline/fetch.py --dry-run
   python3 pipeline/judge.py --dry-run
