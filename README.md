@@ -130,7 +130,6 @@ prompts/     the judge prompt
 results/     one JSON per benchmark run
 tools/       leak_check.sh (pre-commit and CI), results_table.py
 JOURNAL.md   test write-ups, newest first
-CUTOVER.md   moving a machine's nightly jobs onto this repo
 ```
 
 ## Licence
