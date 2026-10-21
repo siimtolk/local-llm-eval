@@ -1,0 +1,102 @@
+# local-llm-eval settings for one machine. Copy to local.toml (gitignored) and fill in.
+# Paths: ~ is expanded; relative paths are relative to this repo, except where noted.
+
+[locale]
+language = "en"                     # report and store messages: "en" or "et" (single messages: [texts] below)
+
+[paths]
+serving = "~/local-llm-serving"     # the serving repo with bin/serve (see README, "Serving backend")
+models = "models"                   # candidate weights, models/<name>/ (relative to serving)
+model_configs = "models.d"          # serving configs, <name>.conf.sh (relative to serving); names must not collide
+logs = "logs"                       # download and server logs (relative to serving)
+results = "results"                 # bench results, <label>.json (tracked)
+store = "state/candidates.json"     # the candidates store (gitignored)
+state = "state"                     # locks, poll registry, discover state (gitignored)
+runs = "state/runs"                 # final text of every agent run (gitignored)
+polls = "state/model_polls.json"   # poll registry (option text -> repo), read by candidates.py vote
+briefs = "state/briefs"             # judge replies, <date>_<time>.md; candidates.py index reads the picks
+short_links = "state/short_links.json"   # cache when [notify] short_links is on
+
+[serving]
+command = "bin/serve"               # backend interface, relative to serving: {start|stop|health} <model> [--port N] [--backend B]
+test_port = 8085                    # candidates are served here
+production_url = "http://127.0.0.1:8080"
+api_key_file = "~/local-llm-serving/secrets/primary/api_key.txt"   # bench.py's default key
+candidate_llama_cpp = "llama.cpp-next"   # llama.cpp build for candidates (bin/serve --llama-cpp), relative to serving
+production_config = "models.d/production.conf.sh"   # never changed by a test (relative to serving)
+production_model = "production"     # its name under models.d/ and secrets/ (candidates reuse its API key)
+vllm_container = "vllm-test"        # a Docker container outlives a killed agent run
+
+[production]
+# Hooks around a test. stop frees the GPUs, ensure brings production back (idempotent; also run
+# by the runner after every test and at the deadline). Relative programs resolve in the serving repo.
+stop = "bin/stop_production.sh"
+ensure = "bin/ensure_production.sh"
+start = "sudo -n systemctl start serve-llm"   # quoted in the procedure: start first, ensure as fallback
+description = "Qwen3.8-27B (uncensored fine-tune), dense 27B, IQ4_XS 15.5 GB, 2 x 128k context, MTP drafting, vision via mmproj"
+# Production's results on the current suite, the baseline every candidate is compared with.
+baseline = "qwen3.8-27b-rvn_iq4xs_2gpu_128k_suite2026-10-18_b11707"
+
+[schedule]
+timezone = ""                       # IANA name, e.g. "Europe/Berlin"; empty = the system's local time
+window_start = "01:00"              # tests start only inside this window
+window_end = "06:00"                # production must be serving again by then
+restore_margin_min = 10             # kept free before window_end to restore production
+min_test_min = 75                   # a full GGUF test; with less time left the next candidate waits
+vllm_min_test_min = 95              # a vLLM test (first start compiles kernels)
+report_time = "07:10"               # when the morning report runs (only quoted in procedures)
+
+[agent]
+# The coding agent that follows bench/NIGHTLY.md, started headless.
+command = "claude"                  # Claude Code CLI; on PATH or an absolute path
+permission_mode = "auto"
+max_turns = 400
+path_env = "~/.local/bin:/usr/local/bin:/usr/bin:/bin"   # PATH for background units (bkg-start)
+bkg_unit = "local-llm-eval-bkg"     # transient systemd user unit for on-demand runs
+nightly_units = ["local-llm-eval-test", "local-llm-eval-test-early"]   # the nightly test's units
+summary_language = "English"        # language of the per-candidate summary in the report
+cwd = ""                            # the agent's working directory; empty = this repo (both repos are --add-dir'ed)
+# Permissions: tools/agent_settings.py writes .claude/settings.local.json from this file.
+
+[judge]
+# Stage 2: reads the discover output (prompts/judge.md + candidates) on stdin, prints the brief.
+command = "claude -p --output-format text"
+languages = "English"               # what the replacement must handle well
+profile_files = []                  # optional notes about your interests, appended to the judge input
+
+[notify]
+# Where reports go. Empty http_url and command: printed to stdout.
+http_url = ""                       # POST {"chatId": chat_id, "message": text}
+poll_url = ""                       # POST {"chatId", "question", "options", "selectableCount"} -> {"messageId"}
+chat_id = ""
+command = ""                        # alternative: a shell command that gets the message on stdin
+short_links = false                 # shorten links (is.gd / TinyURL) for chats that show raw URLs
+
+[huggingface]
+cli = "hf"                          # huggingface_hub CLI for downloads
+# Uploaders whose new repos are uncensored versions of notable models (discover watches them).
+trusted_publishers = ["0bserverx", "HauhauCS", "huihui-ai", "p-e-w", "dealignai"]
+# Orgs whose base models are stock originals (sharing one says nothing about being the same build).
+official_orgs = ["qwen", "google", "nvidia", "meta-llama", "mistralai", "microsoft", "openai", "deepseek-ai",
+                 "zai-org", "moonshotai", "liquidai", "openbmb", "ibm-granite", "allenai"]
+search_words = ["uncensored", "abliterated", "heretic"]
+# Repos already served or tested outside the store (the store's own repos are skipped anyway).
+tried = []
+
+[machine]
+description = "2 x 16 GB GPU (32 GB VRAM), 46 GB RAM, llama.cpp"
+fit_gb = 26                         # weights that fit in VRAM with two 128k slots
+offload_gb = 60                     # a MoE up to this size with experts in RAM
+max_active_b = 12                   # ... and at most this many active parameters (billions)
+min_params_b = 12                   # smaller models are no replacement
+vllm_fit_gb = 22                    # 4-bit safetensors weights that fit vLLM with 2 x 128k
+min_free_gb = 50                    # disk kept free after a download
+max_ready = 6                       # candidates waiting downloaded at most
+
+[bench]
+# Extra directories hidden from model-written code (home and /root are always hidden).
+sandbox_hide = ["/mnt", "/srv"]
+
+# [texts]
+# Replace single messages of pipeline/texts.py for this machine, e.g.
+# "bkg.prod_bad" = "Production does not answer; see ~/local-llm-serving/logs/."
