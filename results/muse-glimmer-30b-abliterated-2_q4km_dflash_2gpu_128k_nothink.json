@@ -1,0 +1,1636 @@
+{
+ "label": "muse-glimmer-30b-abliterated-2_q4km_dflash_2gpu_128k_nothink",
+ "reps": 3,
+ "temperature": null,
+ "request_extra": {
+  "chat_template_kwargs": {
+   "enable_thinking": false
+  },
+  "reasoning_effort": "none"
+ },
+ "cases": "cases.py",
+ "suite": "2026-10-18",
+ "started": "2026-10-20 19:11:22",
+ "tools": [
+  {
+   "case": "light",
+   "ok": true,
+   "wall": 4.587550401687622,
+   "tokens": 191,
+   "calls": [
+    [
+     "set_light",
+     {
+      "room": "living room",
+      "brightness": 30
+     }
+    ]
+   ]
+  },
+  {
+   "case": "light",
+   "ok": true,
+   "wall": 2.0119056701660156,
+   "tokens": 131,
+   "calls": [
+    [
+     "set_light",
+     {
+      "room": "living room",
+      "brightness": 30
+     }
+    ]
+   ]
+  },
+  {
+   "case": "light",
+   "ok": true,
+   "wall": 2.630183458328247,
+   "tokens": 155,
+   "calls": [
+    [
+     "set_light",
+     {
+      "room": "living room",
+      "brightness": 30
+     }
+    ]
+   ]
+  },
+  {
+   "case": "weather",
+   "ok": true,
+   "wall": 19.100367307662964,
+   "tokens": 911,
+   "calls": [
+    [
+     "get_weather",
+     {
+      "location": "Tartu",
+      "day": "tomorrow"
+     }
+    ],
+    [
+     "search_web",
+     {
+      "query": "Tartu weather forecast tomorrow"
+     }
+    ],
+    [
+     "get_weather",
+     {
+      "location": "Tartu",
+      "day": "Wednesday"
+     }
+    ],
+    [
+     "search_web",
+     {
+      "query": "Tartu Estonia weather forecast 21 October 2026"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "weather",
+   "ok": true,
+   "wall": 19.454111337661743,
+   "tokens": 959,
+   "calls": [
+    [
+     "get_weather",
+     {
+      "location": "Tartu",
+      "day": "tomorrow"
+     }
+    ],
+    [
+     "get_weather",
+     {
+      "location": "Tartu, Estonia",
+      "day": "tomorrow"
+     }
+    ],
+    [
+     "search_web",
+     {
+      "query": "Tartu weather tomorrow forecast"
+     }
+    ],
+    [
+     "search_web",
+     {
+      "query": "Tartu Estonia weather forecast 21 October 2026"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "weather",
+   "ok": true,
+   "wall": 15.591277837753296,
+   "tokens": 769,
+   "calls": [
+    [
+     "get_weather",
+     {
+      "location": "Tartu",
+      "day": "tomorrow"
+     }
+    ],
+    [
+     "get_weather",
+     {
+      "location": "Tartu, Estonia",
+      "day": "tomorrow"
+     }
+    ],
+    [
+     "search_web",
+     {
+      "query": "Tartu weather tomorrow forecast"
+     }
+    ],
+    [
+     "get_weather",
+     {
+      "location": "Tartu",
+      "day": "Wednesday"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "shopping",
+   "ok": true,
+   "wall": 4.334748029708862,
+   "tokens": 191,
+   "calls": [
+    [
+     "add_shopping_items",
+     {
+      "items": [
+       "milk",
+       "eggs"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "case": "shopping",
+   "ok": true,
+   "wall": 8.008957147598267,
+   "tokens": 359,
+   "calls": [
+    [
+     "add_shopping_items",
+     {
+      "items": [
+       "milk",
+       "eggs"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "case": "shopping",
+   "ok": true,
+   "wall": 2.6935746669769287,
+   "tokens": 149,
+   "calls": [
+    [
+     "add_shopping_items",
+     {
+      "items": [
+       "milk",
+       "eggs"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "case": "timer_units",
+   "ok": true,
+   "wall": 3.834151029586792,
+   "tokens": 163,
+   "calls": [
+    [
+     "set_timer",
+     {
+      "seconds": 720
+     }
+    ]
+   ]
+  },
+  {
+   "case": "timer_units",
+   "ok": true,
+   "wall": 2.5352072715759277,
+   "tokens": 128,
+   "calls": [
+    [
+     "set_timer",
+     {
+      "seconds": 720
+     }
+    ]
+   ]
+  },
+  {
+   "case": "timer_units",
+   "ok": true,
+   "wall": 5.649288177490234,
+   "tokens": 235,
+   "calls": [
+    [
+     "set_timer",
+     {
+      "seconds": 720
+     }
+    ]
+   ]
+  },
+  {
+   "case": "no_tool_math",
+   "ok": true,
+   "wall": 3.259389638900757,
+   "tokens": 121,
+   "calls": []
+  },
+  {
+   "case": "no_tool_math",
+   "ok": true,
+   "wall": 1.6363098621368408,
+   "tokens": 84,
+   "calls": []
+  },
+  {
+   "case": "no_tool_math",
+   "ok": true,
+   "wall": 2.6243672370910645,
+   "tokens": 102,
+   "calls": []
+  },
+  {
+   "case": "no_tool_chat",
+   "ok": true,
+   "wall": 4.069754362106323,
+   "tokens": 130,
+   "calls": []
+  },
+  {
+   "case": "no_tool_chat",
+   "ok": true,
+   "wall": 6.8035948276519775,
+   "tokens": 235,
+   "calls": []
+  },
+  {
+   "case": "no_tool_chat",
+   "ok": true,
+   "wall": 0.4323091506958008,
+   "tokens": 7,
+   "calls": []
+  },
+  {
+   "case": "two_tools",
+   "ok": true,
+   "wall": 25.18019127845764,
+   "tokens": 1041,
+   "calls": [
+    [
+     "set_timer",
+     {
+      "seconds": 1200
+     }
+    ],
+    [
+     "send_message",
+     {
+      "to": "wife",
+      "text": "I'll be 20 minutes late."
+     }
+    ]
+   ]
+  },
+  {
+   "case": "two_tools",
+   "ok": true,
+   "wall": 12.203544616699219,
+   "tokens": 580,
+   "calls": [
+    [
+     "send_message",
+     {
+      "to": "wife",
+      "text": "I'll be 20 minutes late"
+     }
+    ],
+    [
+     "set_timer",
+     {
+      "seconds": 1200
+     }
+    ]
+   ]
+  },
+  {
+   "case": "two_tools",
+   "ok": true,
+   "wall": 18.45134162902832,
+   "tokens": 881,
+   "calls": [
+    [
+     "send_message",
+     {
+      "to": "wife",
+      "text": "I'll be 20 minutes late"
+     }
+    ],
+    [
+     "set_timer",
+     {
+      "seconds": 1200
+     }
+    ]
+   ]
+  },
+  {
+   "case": "media_args",
+   "ok": true,
+   "wall": 4.440896034240723,
+   "tokens": 271,
+   "calls": [
+    [
+     "play_media",
+     {
+      "title": "The Sopranos",
+      "device": "bedroom TV",
+      "season": 3,
+      "episode": 11
+     }
+    ]
+   ]
+  },
+  {
+   "case": "media_args",
+   "ok": true,
+   "wall": 3.216094493865967,
+   "tokens": 228,
+   "calls": [
+    [
+     "play_media",
+     {
+      "title": "The Sopranos",
+      "device": "bedroom TV",
+      "season": 3,
+      "episode": 11
+     }
+    ]
+   ]
+  },
+  {
+   "case": "media_args",
+   "ok": true,
+   "wall": 4.214635610580444,
+   "tokens": 285,
+   "calls": [
+    [
+     "play_media",
+     {
+      "title": "The Sopranos",
+      "device": "bedroom TV",
+      "season": 3,
+      "episode": 11
+     }
+    ]
+   ]
+  },
+  {
+   "case": "calendar",
+   "ok": true,
+   "wall": 31.047451496124268,
+   "tokens": 1408,
+   "calls": [
+    [
+     "get_calendar",
+     {
+      "day": "Friday"
+     }
+    ],
+    [
+     "get_calendar",
+     {
+      "day": "2026-10-23"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "calendar",
+   "ok": true,
+   "wall": 32.555869817733765,
+   "tokens": 1512,
+   "calls": [
+    [
+     "get_calendar",
+     {
+      "day": "Friday"
+     }
+    ],
+    [
+     "get_calendar",
+     {
+      "day": "2026-10-23"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "calendar",
+   "ok": true,
+   "wall": 29.743502378463745,
+   "tokens": 1372,
+   "calls": [
+    [
+     "get_calendar",
+     {
+      "day": "2026-10-23"
+     }
+    ],
+    [
+     "get_calendar",
+     {
+      "day": "Friday"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "cron_weekdays",
+   "ok": true,
+   "wall": 13.21721363067627,
+   "tokens": 666,
+   "calls": [
+    [
+     "schedule_job",
+     {
+      "job": "backup",
+      "cron": "30 6 * * 1-5"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "cron_weekdays",
+   "ok": true,
+   "wall": 14.033430814743042,
+   "tokens": 700,
+   "calls": [
+    [
+     "schedule_job",
+     {
+      "job": "backup",
+      "cron": "30 6 * * 1-5"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "cron_weekdays",
+   "ok": true,
+   "wall": 13.487380027770996,
+   "tokens": 664,
+   "calls": [
+    [
+     "schedule_job",
+     {
+      "job": "backup",
+      "cron": "30 6 * * 1-5"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "typos",
+   "ok": true,
+   "wall": 7.151589393615723,
+   "tokens": 351,
+   "calls": [
+    [
+     "set_light",
+     {
+      "room": "kitchen",
+      "brightness": 0
+     }
+    ]
+   ]
+  },
+  {
+   "case": "typos",
+   "ok": true,
+   "wall": 9.513623237609863,
+   "tokens": 384,
+   "calls": [
+    [
+     "set_light",
+     {
+      "room": "kitchn",
+      "brightness": 0
+     }
+    ]
+   ]
+  },
+  {
+   "case": "typos",
+   "ok": true,
+   "wall": 7.744859457015991,
+   "tokens": 352,
+   "calls": [
+    [
+     "set_light",
+     {
+      "room": "kitchen",
+      "brightness": 0
+     }
+    ]
+   ]
+  },
+  {
+   "case": "three_tools",
+   "ok": true,
+   "wall": 20.866156101226807,
+   "tokens": 868,
+   "calls": [
+    [
+     "add_shopping_items",
+     {
+      "items": [
+       "bread"
+      ]
+     }
+    ],
+    [
+     "set_timer",
+     {
+      "seconds": 300
+     }
+    ],
+    [
+     "get_weather",
+     {
+      "location": "Helsinki",
+      "day": "today"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "three_tools",
+   "ok": false,
+   "wall": 21.941636085510254,
+   "tokens": 1051,
+   "calls": [
+    [
+     "add_shopping_items",
+     {
+      "items": [
+       "bread"
+      ]
+     }
+    ],
+    [
+     "set_timer",
+     {
+      "seconds": 300
+     }
+    ],
+    [
+     "get_weather",
+     {
+      "location": "Helsinki",
+      "day": "today"
+     }
+    ],
+    [
+     "search_web",
+     {
+      "query": "Helsinki weather today</atem:def>\n</atem:invoke>\n</atem:function_calls><|eom|><|start|>assistant to=self<|message|>We called add_shopping_items and set_timer already. Now calling search_web. Wait we also need to give result? Might be multiple calls. We can only do one call at a time? Could do multiple in same turn? The spec says lead with output. We could do one call per turn. Better to first get weather then report. We already called get_weather, got no data. Now search web.\n\nWe should maybe combine? Let's do search.<|eom|><|start|>assistant to=search_web<|message|><atem:function_calls>\n<atem:invoke name=\"search_web\">\n<atem:parameter name=\"query\">Helsinki weather today"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "three_tools",
+   "ok": true,
+   "wall": 8.465540409088135,
+   "tokens": 470,
+   "calls": [
+    [
+     "add_shopping_items",
+     {
+      "items": [
+       "bread"
+      ]
+     }
+    ],
+    [
+     "set_timer",
+     {
+      "seconds": 300
+     }
+    ],
+    [
+     "get_weather",
+     {
+      "location": "Helsinki",
+      "day": "today"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "ask_first",
+   "ok": true,
+   "wall": 7.673128366470337,
+   "tokens": 303,
+   "calls": []
+  },
+  {
+   "case": "ask_first",
+   "ok": true,
+   "wall": 5.769028186798096,
+   "tokens": 257,
+   "calls": []
+  },
+  {
+   "case": "ask_first",
+   "ok": true,
+   "wall": 10.012008666992188,
+   "tokens": 396,
+   "calls": []
+  },
+  {
+   "case": "no_tool_fact",
+   "ok": true,
+   "wall": 11.925068140029907,
+   "tokens": 467,
+   "calls": []
+  },
+  {
+   "case": "no_tool_fact",
+   "ok": true,
+   "wall": 4.98379373550415,
+   "tokens": 177,
+   "calls": []
+  },
+  {
+   "case": "no_tool_fact",
+   "ok": true,
+   "wall": 6.999201774597168,
+   "tokens": 246,
+   "calls": []
+  }
+ ],
+ "total_seconds": 1663.188472032547,
+ "extract": [
+  {
+   "case": "invoice",
+   "ok": true,
+   "wall": 4.183466672897339,
+   "tokens": 351,
+   "truncated": false,
+   "answer": "{\"name\":\"Kristjan Tamm\",\"date\":\"2026-11-03\",\"amount\":149.5,\"currency\":\"EUR\"}"
+  },
+  {
+   "case": "invoice",
+   "ok": true,
+   "wall": 6.101161956787109,
+   "tokens": 416,
+   "truncated": false,
+   "answer": "{\"name\":\"Kristjan Tamm\",\"date\":\"2026-11-03\",\"amount\":149.5,\"currency\":\"EUR\"}"
+  },
+  {
+   "case": "invoice",
+   "ok": true,
+   "wall": 4.3233819007873535,
+   "tokens": 333,
+   "truncated": false,
+   "answer": "{\"name\":\"Kristjan Tamm\",\"date\":\"2026-11-03\",\"amount\":149.5,\"currency\":\"EUR\"}"
+  },
+  {
+   "case": "filename",
+   "ok": true,
+   "wall": 6.573843240737915,
+   "tokens": 389,
+   "truncated": false,
+   "answer": "{\"title\":\"The Martian\",\"year\":2015,\"resolution\":\"1080p\",\"edition\":\"EXTENDED\"}"
+  },
+  {
+   "case": "filename",
+   "ok": true,
+   "wall": 4.508698463439941,
+   "tokens": 296,
+   "truncated": false,
+   "answer": "{\"title\":\"The Martian\",\"year\":2015,\"resolution\":\"1080p\",\"edition\":\"EXTENDED\"}"
+  },
+  {
+   "case": "filename",
+   "ok": true,
+   "wall": 6.9854347705841064,
+   "tokens": 451,
+   "truncated": false,
+   "answer": "{\"title\":\"The Martian\",\"year\":2015,\"resolution\":\"1080p\",\"edition\":\"EXTENDED\"}"
+  },
+  {
+   "case": "shopping",
+   "ok": true,
+   "wall": 17.490654706954956,
+   "tokens": 923,
+   "truncated": false,
+   "answer": "{\"items\":[{\"name\":\"milk\",\"qty\":2},{\"name\":\"bread\",\"qty\":1},{\"name\":\"egg\",\"qty\":10}]}"
+  },
+  {
+   "case": "shopping",
+   "ok": true,
+   "wall": 16.1923770904541,
+   "tokens": 862,
+   "truncated": false,
+   "answer": "{\"items\":[{\"name\":\"milk\",\"qty\":2},{\"name\":\"bread\",\"qty\":1},{\"name\":\"eggs\",\"qty\":10}]}"
+  },
+  {
+   "case": "shopping",
+   "ok": true,
+   "wall": 16.39137291908264,
+   "tokens": 920,
+   "truncated": false,
+   "answer": "{\"items\":[{\"name\":\"milk\",\"qty\":2},{\"name\":\"bread\",\"qty\":1},{\"name\":\"eggs\",\"qty\":10}]}"
+  },
+  {
+   "case": "logline",
+   "ok": true,
+   "wall": 5.246532678604126,
+   "tokens": 353,
+   "truncated": false,
+   "answer": "{\"level\":\"ERROR\",\"service\":\"gateway\",\"code\":503,\"retry_after_s\":30,\"attempt\":2}"
+  },
+  {
+   "case": "logline",
+   "ok": true,
+   "wall": 3.6702096462249756,
+   "tokens": 283,
+   "truncated": false,
+   "answer": "{\"level\":\"ERROR\",\"service\":\"gateway\",\"code\":503,\"retry_after_s\":30,\"attempt\":2}"
+  },
+  {
+   "case": "logline",
+   "ok": true,
+   "wall": 4.147939682006836,
+   "tokens": 337,
+   "truncated": false,
+   "answer": "{\"level\":\"ERROR\",\"service\":\"gateway\",\"code\":503,\"retry_after_s\":30,\"attempt\":2}"
+  },
+  {
+   "case": "release_name",
+   "ok": false,
+   "wall": 54.389612913131714,
+   "tokens": 2444,
+   "truncated": false,
+   "answer": "{\"title\":\"Moonstone.Secret\",\"year\":2025,\"resolution\":\"1080p\",\"audio_languages\":[\"et\",\"en\"]}"
+  },
+  {
+   "case": "release_name",
+   "ok": true,
+   "wall": 29.981473922729492,
+   "tokens": 1526,
+   "truncated": false,
+   "answer": "{\"title\":\"Moonstone Secret\",\"year\":2025,\"resolution\":\"1080p\",\"audio_languages\":[\"et\",\"en\"]}"
+  },
+  {
+   "case": "release_name",
+   "ok": true,
+   "wall": 51.210928440093994,
+   "tokens": 2298,
+   "truncated": false,
+   "answer": "{\"title\":\"Moonstone Secret\",\"year\":2025,\"resolution\":\"1080p\",\"audio_languages\":[\"et\",\"en\"]}\n"
+  }
+ ],
+ "instruct": [
+  {
+   "case": "brief_layout",
+   "ok": false,
+   "wall": 33.326112270355225,
+   "truncated": false,
+   "tokens": 2381,
+   "answer": "**Tech brief**\n\n**NVIDIA ships driver 610 with CUDA 13.4**\nDriver 610 adds RTX 60 series support and fixes a reported memory leak.\nhttps://tinyurl.com/nv610x\n\n**Qwen releases a 27B dense model under Apache 2.0**\nQwen ships a 27B dense model with 262k context and MTP head under Apache 2.0 license.\nht"
+  },
+  {
+   "case": "brief_layout",
+   "ok": false,
+   "wall": 26.17571449279785,
+   "truncated": false,
+   "tokens": 1819,
+   "answer": "**Tech brief**\n\n**Qwen releases a 27B dense model under Apache 2.0**\nQwen ships 27B dense model with 262k context and MTP head under Apache 2.0 license.\nhttps://tinyurl.com/qw38a7\n\n**Mistral open-sources a 24B reasoning model**\nMistral publishes 24B reasoning weights on Hugging Face with commercial "
+  },
+  {
+   "case": "brief_layout",
+   "ok": false,
+   "wall": 37.48692989349365,
+   "truncated": false,
+   "tokens": 2684,
+   "answer": "**Tech brief**\n\n**Qwen releases a 27B dense model under Apache 2.0**\nQwen ships a 27B dense model Apache 2.0 with 262k context and MTP head.\nhttps://tinyurl.com/qw38a7\n\n**NVIDIA ships driver 610 with CUDA 13.4**\nNVIDIA driver 610 adds RTX 60 series support and fixes a memory leak.\nhttps://tinyurl.co"
+  },
+  {
+   "case": "brief_silent",
+   "ok": true,
+   "wall": 4.495420694351196,
+   "truncated": false,
+   "tokens": 471,
+   "answer": "[SILENT]"
+  },
+  {
+   "case": "brief_silent",
+   "ok": true,
+   "wall": 8.229206800460815,
+   "truncated": false,
+   "tokens": 617,
+   "answer": "[SILENT]"
+  },
+  {
+   "case": "brief_silent",
+   "ok": true,
+   "wall": 4.285734415054321,
+   "truncated": false,
+   "tokens": 495,
+   "answer": "[SILENT]"
+  },
+  {
+   "case": "exact_reply",
+   "ok": true,
+   "wall": 3.168306827545166,
+   "truncated": false,
+   "tokens": 150,
+   "answer": "ok"
+  },
+  {
+   "case": "exact_reply",
+   "ok": true,
+   "wall": 2.232135772705078,
+   "truncated": false,
+   "tokens": 104,
+   "answer": "ok"
+  },
+  {
+   "case": "exact_reply",
+   "ok": true,
+   "wall": 2.298225164413452,
+   "truncated": false,
+   "tokens": 105,
+   "answer": "ok"
+  },
+  {
+   "case": "word_limit",
+   "ok": true,
+   "wall": 8.456949949264526,
+   "truncated": false,
+   "tokens": 665,
+   "answer": "Guest pier closed 3 June to 21 June for repairs, boats over 12 metres use east pier, fuel station open 8:00 to 20:00."
+  },
+  {
+   "case": "word_limit",
+   "ok": true,
+   "wall": 11.279081344604492,
+   "truncated": false,
+   "tokens": 782,
+   "answer": "Guest pier closed 3 June to 21 June for repairs; boats over 12 metres must use east pier; fuel station open 8:00 to 20:00."
+  },
+  {
+   "case": "word_limit",
+   "ok": true,
+   "wall": 7.386390924453735,
+   "truncated": false,
+   "tokens": 548,
+   "answer": "Guest pier closed 3 June to 21 June for repairs, boats over 12 metres must use east pier, fuel station open 8:00 to 20:00."
+  },
+  {
+   "case": "plain_text",
+   "ok": true,
+   "wall": 8.927630186080933,
+   "truncated": false,
+   "tokens": 413,
+   "answer": "Keep bread fresh by storing it at cool room temperature in a paper bag or a bread box instead of plastic, freezing portions you will not eat soon and thawing only what you need, and limiting air exposure by keeping it loosely covered and using it within a few days."
+  },
+  {
+   "case": "plain_text",
+   "ok": true,
+   "wall": 6.591479778289795,
+   "truncated": false,
+   "tokens": 332,
+   "answer": "Store bread in a paper bag rather than plastic to let it breathe, keep it in a cool dry place at room temperature and use it within a couple of days, and freeze extra loaves or slices tightly wrapped and thaw only what you need."
+  },
+  {
+   "case": "plain_text",
+   "ok": true,
+   "wall": 12.634459495544434,
+   "truncated": false,
+   "tokens": 542,
+   "answer": "Keep bread fresh by storing it in a paper bag at room temperature for one to two days then moving it to an airtight bag in the freezer, keeping it in a dry bread box away from humidity and heat, and slicing only what you need and wrapping the remainder tightly to limit air exposure."
+  },
+  {
+   "case": "acrostic",
+   "ok": true,
+   "wall": 22.029460191726685,
+   "truncated": false,
+   "tokens": 1179,
+   "answer": "Sailors Always Inspect Light On Reefs."
+  },
+  {
+   "case": "acrostic",
+   "ok": true,
+   "wall": 17.581045150756836,
+   "truncated": false,
+   "tokens": 948,
+   "answer": "Sailors Always Investigate Large Oceanic Regions"
+  },
+  {
+   "case": "acrostic",
+   "ok": true,
+   "wall": 20.146507024765015,
+   "truncated": false,
+   "tokens": 976,
+   "answer": "Sailors Always Inspect Large Ocean Routes"
+  },
+  {
+   "case": "three_bullets",
+   "ok": true,
+   "wall": 5.527536392211914,
+   "truncated": false,
+   "tokens": 336,
+   "answer": "- Reef early to prevent overpowered heel\n- Control speed before gusts build strength\n- Keep crew safe and boat balanced"
+  },
+  {
+   "case": "three_bullets",
+   "ok": true,
+   "wall": 9.012864112854004,
+   "truncated": false,
+   "tokens": 539,
+   "answer": "- Reduce sail area before gusts hit\n- Protect crew and rig from shock loads\n- Maintain boat speed and pointing ability"
+  },
+  {
+   "case": "three_bullets",
+   "ok": true,
+   "wall": 8.369126558303833,
+   "truncated": false,
+   "tokens": 549,
+   "answer": "- Prevent excessive heel and weather helm\n- Protect rigging from shock loads\n- Keep boat controlled and crew safe"
+  }
+ ],
+ "judge": [
+  {
+   "case": "misspelt",
+   "ok": true,
+   "wall": 3.980133056640625,
+   "truncated": false,
+   "tokens": 239,
+   "answer": "VERDICT: correct"
+  },
+  {
+   "case": "misspelt",
+   "ok": true,
+   "wall": 4.97455096244812,
+   "truncated": false,
+   "tokens": 321,
+   "answer": "VERDICT: correct"
+  },
+  {
+   "case": "misspelt",
+   "ok": true,
+   "wall": 3.6508634090423584,
+   "truncated": false,
+   "tokens": 238,
+   "answer": "VERDICT: correct"
+  },
+  {
+   "case": "other_case",
+   "ok": true,
+   "wall": 4.899945259094238,
+   "truncated": false,
+   "tokens": 318,
+   "answer": "VERDICT: correct"
+  },
+  {
+   "case": "other_case",
+   "ok": true,
+   "wall": 3.9093475341796875,
+   "truncated": false,
+   "tokens": 265,
+   "answer": "VERDICT: correct"
+  },
+  {
+   "case": "other_case",
+   "ok": true,
+   "wall": 4.6409056186676025,
+   "truncated": false,
+   "tokens": 311,
+   "answer": "VERDICT: correct"
+  },
+  {
+   "case": "wrong_year",
+   "ok": true,
+   "wall": 7.685598611831665,
+   "truncated": false,
+   "tokens": 380,
+   "answer": "VERDICT: incorrect"
+  },
+  {
+   "case": "wrong_year",
+   "ok": true,
+   "wall": 5.093543529510498,
+   "truncated": false,
+   "tokens": 297,
+   "answer": "VERDICT: incorrect"
+  },
+  {
+   "case": "wrong_year",
+   "ok": true,
+   "wall": 3.785489082336426,
+   "truncated": false,
+   "tokens": 252,
+   "answer": "VERDICT: incorrect"
+  },
+  {
+   "case": "near_miss",
+   "ok": true,
+   "wall": 2.96496319770813,
+   "truncated": false,
+   "tokens": 218,
+   "answer": "VERDICT: incorrect"
+  },
+  {
+   "case": "near_miss",
+   "ok": true,
+   "wall": 3.5119173526763916,
+   "truncated": false,
+   "tokens": 236,
+   "answer": "VERDICT: incorrect"
+  },
+  {
+   "case": "near_miss",
+   "ok": true,
+   "wall": 3.302520751953125,
+   "truncated": false,
+   "tokens": 215,
+   "answer": "VERDICT: incorrect"
+  },
+  {
+   "case": "surname",
+   "ok": true,
+   "wall": 6.575095176696777,
+   "truncated": false,
+   "tokens": 359,
+   "answer": "VERDICT: correct"
+  },
+  {
+   "case": "surname",
+   "ok": true,
+   "wall": 3.5752058029174805,
+   "truncated": false,
+   "tokens": 249,
+   "answer": "VERDICT: correct"
+  },
+  {
+   "case": "surname",
+   "ok": true,
+   "wall": 4.445979356765747,
+   "truncated": false,
+   "tokens": 283,
+   "answer": "VERDICT: correct"
+  },
+  {
+   "case": "symbol",
+   "ok": true,
+   "wall": 4.659746170043945,
+   "truncated": false,
+   "tokens": 253,
+   "answer": "VERDICT: incorrect"
+  },
+  {
+   "case": "symbol",
+   "ok": true,
+   "wall": 7.0453877449035645,
+   "truncated": false,
+   "tokens": 324,
+   "answer": "VERDICT: incorrect"
+  },
+  {
+   "case": "symbol",
+   "ok": true,
+   "wall": 5.0919811725616455,
+   "truncated": false,
+   "tokens": 303,
+   "answer": "VERDICT: incorrect"
+  }
+ ],
+ "estonian": [
+  {
+   "case": "et_light",
+   "ok": true,
+   "wall": 10.577165603637695,
+   "tokens": 491,
+   "calls": [
+    [
+     "set_light",
+     {
+      "room": "elutoa",
+      "brightness": 50
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_light",
+   "ok": true,
+   "wall": 4.956293821334839,
+   "tokens": 264,
+   "calls": [
+    [
+     "set_light",
+     {
+      "room": "elutoa",
+      "brightness": 50
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_light",
+   "ok": true,
+   "wall": 6.354706287384033,
+   "tokens": 342,
+   "calls": [
+    [
+     "set_light",
+     {
+      "room": "elutuba",
+      "brightness": 50
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_weather",
+   "ok": true,
+   "wall": 15.243874073028564,
+   "tokens": 803,
+   "calls": [
+    [
+     "get_weather",
+     {
+      "location": "Pärnu",
+      "day": "tomorrow"
+     }
+    ],
+    [
+     "search_web",
+     {
+      "query": "Pärnu weather tomorrow forecast"
+     }
+    ],
+    [
+     "search_web",
+     {
+      "query": "Pärnu homme ilm prognoos"
+     }
+    ],
+    [
+     "search_web",
+     {
+      "query": "Pärnu weather forecast 2026-10-21"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_weather",
+   "ok": true,
+   "wall": 18.521706104278564,
+   "tokens": 868,
+   "calls": [
+    [
+     "get_weather",
+     {
+      "location": "Pärnu",
+      "day": "tomorrow"
+     }
+    ],
+    [
+     "get_weather",
+     {
+      "location": "Pärnu, Estonia",
+      "day": "tomorrow"
+     }
+    ],
+    [
+     "search_web",
+     {
+      "query": "Pärnu weather tomorrow forecast"
+     }
+    ],
+    [
+     "get_weather",
+     {
+      "location": "Pärnu",
+      "day": "Wednesday"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_weather",
+   "ok": true,
+   "wall": 20.52498197555542,
+   "tokens": 745,
+   "calls": [
+    [
+     "get_weather",
+     {
+      "location": "Pärnu",
+      "day": "tomorrow"
+     }
+    ],
+    [
+     "search_web",
+     {
+      "query": "Pärnu weather tomorrow forecast"
+     }
+    ],
+    [
+     "search_web",
+     {
+      "query": "Pärnu ilm homme prognoos"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_timer",
+   "ok": true,
+   "wall": 11.466980695724487,
+   "tokens": 545,
+   "calls": [
+    [
+     "set_timer",
+     {
+      "seconds": 900
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_timer",
+   "ok": true,
+   "wall": 14.2246675491333,
+   "tokens": 591,
+   "calls": [
+    [
+     "set_timer",
+     {
+      "seconds": 900
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_timer",
+   "ok": true,
+   "wall": 6.684606313705444,
+   "tokens": 355,
+   "calls": [
+    [
+     "set_timer",
+     {
+      "seconds": 900
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_shopping",
+   "ok": true,
+   "wall": 8.229925394058228,
+   "tokens": 455,
+   "calls": [
+    [
+     "add_shopping_items",
+     {
+      "items": [
+       "piim",
+       "kaks leiba"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_shopping",
+   "ok": true,
+   "wall": 14.659456968307495,
+   "tokens": 716,
+   "calls": [
+    [
+     "add_shopping_items",
+     {
+      "items": [
+       "piim",
+       "kaks leiba"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_shopping",
+   "ok": true,
+   "wall": 11.316718816757202,
+   "tokens": 560,
+   "calls": [
+    [
+     "add_shopping_items",
+     {
+      "items": [
+       "piim",
+       "kaks leiba"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_math",
+   "ok": true,
+   "wall": 6.884417533874512,
+   "tokens": 351,
+   "truncated": false,
+   "answer": "3 - 1 + 5 = 7\n\nANSWER: 7"
+  },
+  {
+   "case": "et_math",
+   "ok": true,
+   "wall": 4.843135118484497,
+   "tokens": 329,
+   "truncated": false,
+   "answer": "3 - 1 = 2\n2 + 5 = 7\n\nANSWER: 7"
+  },
+  {
+   "case": "et_math",
+   "ok": true,
+   "wall": 6.545022487640381,
+   "tokens": 378,
+   "truncated": false,
+   "answer": "3 - 1 + 5 = 7\n\nANSWER: 7"
+  },
+  {
+   "case": "et_read",
+   "ok": true,
+   "wall": 6.955854892730713,
+   "tokens": 381,
+   "truncated": false,
+   "answer": "9.15 → 11.45 = 2 tundi 30 minutit.\n\nANSWER: 150"
+  },
+  {
+   "case": "et_read",
+   "ok": true,
+   "wall": 6.681240558624268,
+   "tokens": 391,
+   "truncated": false,
+   "answer": "9:15 → 11:45 = 2 tundi 30 minutit\n\nANSWER: 150"
+  },
+  {
+   "case": "et_read",
+   "ok": true,
+   "wall": 4.844631195068359,
+   "tokens": 325,
+   "truncated": false,
+   "answer": "Väljumisaeg 9:15 → saabumisaeg 11:45\n11:45 - 9:15 = 2 tundi 30 minutit = 150 minutit\n\nANSWER: 150"
+  },
+  {
+   "case": "et_illative",
+   "ok": true,
+   "wall": 30.282541036605835,
+   "tokens": 1250,
+   "truncated": false,
+   "answer": "ANSWER: majja"
+  },
+  {
+   "case": "et_illative",
+   "ok": true,
+   "wall": 37.01571321487427,
+   "tokens": 1387,
+   "truncated": false,
+   "answer": "Sisseütlev kääne ainsuses sõnal *maja* on keelepruugis kahevariantne, standardne kirjakeele vorm on\n\nANSWER: majja"
+  },
+  {
+   "case": "et_illative",
+   "ok": true,
+   "wall": 27.109897136688232,
+   "tokens": 1072,
+   "truncated": false,
+   "answer": "ANSWER: majja"
+  },
+  {
+   "case": "et_genitive",
+   "ok": true,
+   "wall": 25.944498538970947,
+   "tokens": 1055,
+   "truncated": false,
+   "answer": "ANSWER: toa"
+  },
+  {
+   "case": "et_genitive",
+   "ok": false,
+   "wall": 36.63995814323425,
+   "tokens": 2023,
+   "truncated": false,
+   "answer": "ANSWER: tuba"
+  },
+  {
+   "case": "et_genitive",
+   "ok": true,
+   "wall": 23.619718551635742,
+   "tokens": 960,
+   "truncated": false,
+   "answer": "ANSWER: toa"
+  },
+  {
+   "case": "et_tutar",
+   "ok": true,
+   "wall": 13.150460720062256,
+   "tokens": 616,
+   "truncated": false,
+   "answer": "ANSWER: tütre"
+  },
+  {
+   "case": "et_tutar",
+   "ok": true,
+   "wall": 11.209655046463013,
+   "tokens": 524,
+   "truncated": false,
+   "answer": "ANSWER: tütre"
+  },
+  {
+   "case": "et_tutar",
+   "ok": true,
+   "wall": 37.796218156814575,
+   "tokens": 1601,
+   "truncated": false,
+   "answer": "ANSWER: tütre"
+  },
+  {
+   "case": "et_inimene",
+   "ok": true,
+   "wall": 11.377089500427246,
+   "tokens": 528,
+   "truncated": false,
+   "answer": "ANSWER: inimeste"
+  },
+  {
+   "case": "et_inimene",
+   "ok": true,
+   "wall": 20.110485076904297,
+   "tokens": 896,
+   "truncated": false,
+   "answer": "ANSWER: inimeste"
+  },
+  {
+   "case": "et_inimene",
+   "ok": true,
+   "wall": 16.083640575408936,
+   "tokens": 777,
+   "truncated": false,
+   "answer": "inimeste\n\nANSWER: inimeste"
+  },
+  {
+   "case": "et_jalg",
+   "ok": true,
+   "wall": 9.811205387115479,
+   "tokens": 451,
+   "truncated": false,
+   "answer": "ANSWER: jalgu"
+  },
+  {
+   "case": "et_jalg",
+   "ok": true,
+   "wall": 6.322636842727661,
+   "tokens": 312,
+   "truncated": false,
+   "answer": "ANSWER: jalgu"
+  },
+  {
+   "case": "et_jalg",
+   "ok": true,
+   "wall": 30.650233268737793,
+   "tokens": 1348,
+   "truncated": false,
+   "answer": "ANSWER: jalgu"
+  },
+  {
+   "case": "et_extract",
+   "ok": true,
+   "wall": 3.938728094100952,
+   "tokens": 295,
+   "truncated": false,
+   "answer": "{\"date\":\"2026-11-12\",\"time\":\"18:30\",\"city\":\"Tartu\",\"amount_eur\":25}"
+  },
+  {
+   "case": "et_extract",
+   "ok": true,
+   "wall": 6.559138059616089,
+   "tokens": 418,
+   "truncated": false,
+   "answer": "{\"date\":\"2026-11-12\",\"time\":\"18:30\",\"city\":\"Tartu\",\"amount_eur\":25}"
+  },
+  {
+   "case": "et_extract",
+   "ok": true,
+   "wall": 5.666928291320801,
+   "tokens": 431,
+   "truncated": false,
+   "answer": "{\"date\":\"2026-11-12\",\"time\":\"18:30\",\"city\":\"Tartu\",\"amount_eur\":25}"
+  },
+  {
+   "case": "et_reply",
+   "ok": true,
+   "wall": 4.770130634307861,
+   "truncated": false,
+   "tokens": 201,
+   "answer": "Eesti pealinn on Tallinn."
+  },
+  {
+   "case": "et_reply",
+   "ok": true,
+   "wall": 3.0852277278900146,
+   "truncated": false,
+   "tokens": 146,
+   "answer": "Eesti pealinn on Tallinn."
+  },
+  {
+   "case": "et_reply",
+   "ok": true,
+   "wall": 4.151628017425537,
+   "truncated": false,
+   "tokens": 219,
+   "answer": "Eesti pealinn on Tallinn."
+  },
+  {
+   "case": "et_number_words",
+   "ok": false,
+   "wall": 19.38308811187744,
+   "truncated": false,
+   "tokens": 920,
+   "answer": "ühe tuhande üheksasada kaheksakümmend seitse"
+  },
+  {
+   "case": "et_number_words",
+   "ok": true,
+   "wall": 20.664063930511475,
+   "truncated": false,
+   "tokens": 1082,
+   "answer": "tuhat üheksasada kaheksakümmend seitse"
+  },
+  {
+   "case": "et_number_words",
+   "ok": false,
+   "wall": 22.43772602081299,
+   "truncated": false,
+   "tokens": 1094,
+   "answer": "üks tuhat üheksasada kaheksakümmend seitse"
+  },
+  {
+   "case": "et_summary",
+   "ok": true,
+   "wall": 19.118791818618774,
+   "truncated": false,
+   "tokens": 1156,
+   "answer": "Alibaba Qwen meeskond avaldas Apache 2.0 litsentsiga 27 miljardi parameetrise avatud mudeli 262 000 tokeni kontekstiga.\n"
+  },
+  {
+   "case": "et_summary",
+   "ok": true,
+   "wall": 14.88196325302124,
+   "truncated": false,
+   "tokens": 895,
+   "answer": "Alibaba Qwen meeskond avaldas Apache 2.0 litsentsiga avatud 27 miljardi parameetriga mudeli 262 000 tokeni kontekstaknaga.\n"
+  },
+  {
+   "case": "et_summary",
+   "ok": true,
+   "wall": 12.908464670181274,
+   "truncated": false,
+   "tokens": 926,
+   "answer": "Alibaba Qwen'i meeskond avaldas Apache 2.0 litsentsi all 27 miljardi parameetriga avatud mudeli 262 000 tokeni kontekstiga."
+  }
+ ]
+}
