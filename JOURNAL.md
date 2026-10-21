@@ -5,6 +5,38 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## Test results (2026-10-22) — RVN Qwen3.8-Flash-Next Abliterated (0bserverx), not benchmarked
+
+Question: does 0bserverx's abliterated Qwen3.8-Flash-Next (hybrid SSM/attention MoE, GGUF arch
+`qwen4exp`: 48 blocks, full attention every 4th, 512 experts / 10 active + 1 shared, ~125B
+total, ~6B active) run on this machine with experts offloaded to RAM? Started by hand at 01:37.
+Setup (`models.d/rvn-qwen3.8-flash-next-abliterated.conf.sh`): IQ3_XS (8 split files),
+`llama.cpp-next` (1268edac5, knows `qwen4exp`), both RTX 5060 Ti, `--n-cpu-moe 30`,
+`--tensor-split 39,9` (the default split put all 18 GPU expert blocks on CUDA1: 21GB, out of
+memory), 2 x 128k, q4_0 KV, temp 1.0 / top-p 0.95 / top-k 20 (GGUF metadata),
+`--reasoning-effort low`.
+
+The download is 86.0GB, not the ~55GB the fit rule expected from 125B at IQ3: experts 54.4GB,
+other weights 2.8GB, and a **28.8GB per-layer n-gram embedding table** (`per_layer_token_embd`,
+320M rows x 160, IQ4_NL) that the parameter count does not include. That is above VRAM + RAM
+(32 + 46GB). It loaded (5 min; VRAM 15.4 + 11.1GB) and answered correctly, but the ~34GB of
+experts in RAM plus the table do not fit the ~40GB of free RAM, so it pages from the SATA SSD:
+
+| | Qwen3.8-27B RVN (prod) | RVN Flash-Next IQ3_XS |
+|---|---|---|
+| Prompt processing | 1213 tok/s (30k prompt) | 0.5 tok/s cold, 2.3 tok/s warm (short prompts) |
+| Generation | 46.0 tok/s | 1.3 tok/s cold, 1.5 tok/s warm |
+
+**Takeaways:**
+- At 1.5 tok/s the graded suite (~150k tokens for production) would take more than a day, so
+  the benchmark was not run. Production was back at 01:56.
+- Skipped: it does not fit this machine. The table alone is 28.8GB; no split of the 86GB fits
+  32GB VRAM + 46GB RAM. The weights are kept (skipped, not rejected); 86GB to free by hand.
+- For the fit rule (`pipeline/params.py`, `discover.py`): models with per-layer embeddings
+  (`ple` / `embedding_length_per_layer_input`) need the table counted on top of the parameter
+  count; checking the repo's file sizes before downloading would have caught this.
+- Licence qwen-community-1.0.
+
 ## Switching the backend to vLLM (summary, 2026-10-21)
 
 Status: **not switched; production stays on llama.cpp.** Two experiments ran vLLM 0.32
