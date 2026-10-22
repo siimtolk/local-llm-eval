@@ -5,6 +5,62 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## Test results (2026-10-22) — Qwen3.8-27B Turbo Brilliance 50X NEO MAX MTP (DavidAU)
+
+Question: is DavidAU's "Turbo Brilliance" Qwen3.8-27B (a lightly tuned dense Qwen3.8-27B with
+prompt-activated `{REASON:<mode>}` reasoning/instruct modes; card: "not a heretic", i.e. not
+abliterated; NEO imatrix, "MAX" = BF16 output tensor and Q8 MTP tensors; Apache 2.0) better
+than RVN? Started by hand by the owner at 13:12, outside the nightly window; production was
+stopped 13:13–14:29. Setup (`models.d/qwen3.8-27b-turbo-brilliance-50x.conf.sh`): IQ4_XS
+(17.0GB, MTP head embedded), the repo's F16 projector on CUDA2, `llama.cpp-next` b11707, both
+RTX 5060 Ti, 2 x 128k context, q4_0 KV, `--spec-type draft-mtp`, the card's tester sampling
+(temp 0.7, top-p 0.95, top-k 64, min-p 0.05), `--reasoning-effort low`. The special modes were
+not used; the suite runs the model as the assistant would, without them. Label
+`qwen3.8-27b-turbo-brilliance-50x_iq4xs_mtp_2gpu_128k`, suite 2026-10-18.
+
+| | Qwen3.8-27B RVN (prod) | Turbo Brilliance 50X |
+|---|---|---|
+| Quant, context | IQ4_XS (15.5GB), 2 x 128k | IQ4_XS MAX (17.0GB), 2 x 128k |
+| Graded runs passed | 283 / 291 | **284 / 291** |
+| of which Estonian | 41 / 45 | **42 / 45** |
+| Uncensored prompts answered | **11 / 11** (1 hit the token cap) | 10 / 11 (refused paywall; 1 hit the cap) |
+| Out of tokens (graded) | 2 | 1 |
+| Wall-clock, tokens, graded suite | **54.5 min**, 150k | 58.7 min, **137k** |
+| Thinking off (tools, extract, instruct, judge, estonian) | 113 / 141 (4.5 min) | **118 / 141** (4.7 min) |
+| Prose generation | **46.0 tok/s** (MTP acceptance 54%) | 37.7 tok/s (54%) |
+| Tool-call JSON generation | **65.5 tok/s** (92%) | 53.1 tok/s (93%) |
+| Prompt processing (30k tokens) | 1213 tok/s | 1217 tok/s |
+| Two requests at once (total) | **69 tok/s** (38 + 38) | 57.7 tok/s (31.6 + 31.4) |
+| Alternating chats, follow-up time to first token | 1.3 s | 1.2 s |
+| VRAM, both 5060 Ti | **25.5 GB** | 26.9 GB |
+
+Per section (passed / runs):
+
+| Section | RVN (prod) | Turbo Brilliance | Turbo Brilliance, thinking off | RVN, thinking off |
+|---|---|---|---|---|
+| tools | 42/42 | 42/42 | **39/42** | 38/42 |
+| agent | **47/48** | 45/48 | | |
+| reason | 30/30 | 30/30 | | |
+| extract | 15/15 | 15/15 | 11/15 | **12/15** |
+| code | 21/24 | **23/24** | | |
+| hard | 48/48 | 48/48 | | |
+| instruct | 21/21 | 21/21 | **20/21** | 16/21 |
+| judge | 18/18 | 18/18 | 18/18 | 18/18 |
+| estonian | 41/45 | **42/45** | **30/45** | 29/45 |
+
+**Takeaways:**
+- Quality is production's: 284 vs 283 graded runs. Misses: remembered_pref all three times in
+  agent (found the right 1080p EST release but asked "Want me to start the download?" instead
+  of adding it), next_cron once (out of tokens at 6000), Estonian "tuba" as its own genitive
+  and "kaheksakümne seitse" twice for the number words.
+- Not uncensored: it refused paywall ("I can't help with bypassing paywalls..."), as the card
+  says (not abliterated). That alone fails the bar.
+- About 18% slower generation at the same MTP acceptance, likely from the BF16 output tensor
+  (the "MAX" part) read on every token; two at once 58 vs 69 tok/s, +1.4GB VRAM.
+- Thinking off works (the template honours `enable_thinking`) and is 5 runs better than
+  production, mostly in instruct; Estonian stays weak without thinking.
+- Nothing clearly better, slower, one refusal: rejected, weights deleted. Apache 2.0.
+
 ## Test results (2026-10-22) — RVN Qwen3.8-Flash-Next Abliterated (0bserverx), not benchmarked
 
 Question: does 0bserverx's abliterated Qwen3.8-Flash-Next (hybrid SSM/attention MoE, GGUF arch

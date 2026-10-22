@@ -96,6 +96,7 @@ Write-ups are in [JOURNAL.md](JOURNAL.md), raw numbers in `results/`. The table 
 <!-- results-table:start -->
 | Model | Run | Date | Suite | Graded | Estonian | Uncensored | Thinking off | Prose tok/s |
 |---|---|---|---|---:|---:|---:|---:|---:|
+| qwen3.8-27b-turbo-brilliance-50x | `qwen3.8-27b-turbo-brilliance-50x_iq4xs_mtp_2gpu_128k` | 2026-10-22 | 2026-10-18 | 284/291 | 42/45 | 10/11 | 118/141 | 37.7 |
 | vllm-qwen3.8-27b-uncensored-hauhaucs | `vllm-qwen3.8-27b-uncensored-hauhaucs_vllm0.32_tp2` | 2026-10-21 | 2026-10-18 | 272/291 | 34/45 | 10/11 | 117/141 | 56.7 |
 | nemotron-3.5-bolt-74b-a9b-crack-24gb | `nemotron-3.5-bolt-74b-a9b-crack-24gb_iq2xxs_dflash_2gpu_128k` | 2026-10-21 | 2026-10-18 | 167/291 | 8/45 | 4/11 | 80/141 | 65.6 |
 | qwen3.8-27b-uncensored | `qwen3.8-27b-uncensored_iq4xs_mtp_2gpu_128k` | 2026-10-21 | 2026-10-18 | 276/291 | 36/45 | 11/11 | 117/141 | 44.8 |
