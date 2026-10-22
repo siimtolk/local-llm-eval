@@ -77,8 +77,8 @@ not fit in VRAM is `skipped`.
    `bench/bench.py --label <model>_<quant>_<spec>_2gpu_128k --base-url http://127.0.0.1:$TEST_PORT --api-key-file $SERVING/secrets/<model>/api_key.txt > $SERVING/logs/bench-<model>.log 2>&1`,
    for example `<quant>` = `q4km`, `<spec>` = `mtp` or `nospec`. This is the full suite as the
    everyday assistant uses the model (the server's default reasoning): 97 graded cases x 3
-   (suite 2026-10-18, incl. a ~105k-token prompt), plus speed, two requests at once and two
-   alternating chats, 45–70 min.
+   (suite 2026-10-18, incl. a ~105k-token prompt), plus speed, two requests at once, two
+   alternating chats and decode speed after ~30k and ~90k tokens of context, 45–70 min.
    Then the everyday sections with thinking off, under the same label plus `_nothink`:
    `bench/bench.py --label <label>_nothink --thinking off --only tools,extract,instruct,judge,estonian --base-url http://127.0.0.1:$TEST_PORT --api-key-file $SERVING/secrets/<model>/api_key.txt > $SERVING/logs/bench-<model>-nothink.log 2>&1`
    (about 5–10 min). A model whose template ignores the switch just thinks anyway; say so.
@@ -97,7 +97,9 @@ not fit in VRAM is `skipped`.
    uncensored answered, out-of-tokens count, wall-clock and tokens for the suite, the
    thinking-off pass, prose / tool-JSON / 30k-prompt tok/s, two requests at once (total and
    each), the alternating chats' follow-up time to first token (several seconds means the slot
-   cache is lost between chats), and VRAM. Speed is timed by bench.py itself
+   cache is lost between chats), decode speed and MTP acceptance after ~30k / ~90k tokens of
+   context (`speed.deep_decode`; production's are in `$RESULTS/qwen3.8-27b-rvn_iq4xs_2gpu_128k_b11707_depth.json`;
+   an `error` there means the slot was too small for that depth), and VRAM. Speed is timed by bench.py itself
    (`speed_method: client`); the older llama-server figures ran about 3% higher.
 9. **Write it up** in `$EVAL/JOURNAL.md`: a section `## <date> — <model>` above the older ones:
    the question, the setup (the config's key lines), a table against production, the

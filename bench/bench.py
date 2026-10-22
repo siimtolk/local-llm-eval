@@ -68,6 +68,32 @@ def speed(client):
                      "server_prompt_tok_s": r["timings"].get("prompt_per_second")})
     out["long_prompt"] = runs
     out["parallel"], out["alternating"] = parallel(client), alternating(client)
+    out["deep_decode"] = deep_decode(client)
+    return out
+
+
+# depth label: filler entries (~43 tokens each); the 90k depth needs a slot of at least ~92k tokens
+DEPTHS = {"30k": 700, "90k": 2100}
+
+
+def deep_decode(client):
+    """Generation speed with the context already full, as in a long agent session: a ~30k and a ~90k-token
+    prompt, then a ~400-word answer. Short-prompt speed hides how decode slows down as the KV cache grows
+    (and how MTP acceptance holds up). A depth the server cannot fit is recorded with its error."""
+    out = {}
+    for depth, entries in DEPTHS.items():
+        filler = " ".join(f"Entry {i}: sensor {uuid.uuid4().hex} reported value {i * 37 % 1000}." for i in range(entries))
+        msg = (f"{uuid.uuid4().hex}\n{filler}\nIgnore the list above. Write about 300 words explaining how a sailboat "
+               "can sail upwind. Plain paragraphs.")
+        try:
+            r = client.stream([{"role": "user", "content": msg}], max_tokens=600)
+        except Exception as e:  # context too small for this depth, or the server gave up
+            out[depth] = {"error": f"{type(e).__name__}: {e}"[:200]}
+            continue
+        t = r["timings"]
+        out[depth] = {"prompt_n": r["prompt_n"], "n": r["n"], "tok_s": r["tok_s"], "ttft": r["ttft"], "wall": r["wall"],
+                      "server_tok_s": t.get("predicted_per_second"),
+                      "draft_n": t.get("draft_n"), "draft_accepted": t.get("draft_n_accepted")}
     return out
 
 
@@ -156,6 +182,10 @@ def main():
         print(f"load:  2 at once {par['aggregate_tok_s']:.1f} tok/s total "
               f"({' + '.join(format(r['tok_s'] or 0, '.1f') for r in par['runs'])}) | alternating chats: "
               f"first turn {alt['first_ttft']:.1f}s, follow-ups {alt['follow_up_ttft'] or 0:.1f}s to first token", flush=True)
+        deep = res["speed"]["deep_decode"]
+        print("depth: " + " | ".join(
+            f"decode after {d}: " + (f"{v['tok_s']:.1f} tok/s" if v.get("tok_s") else v.get("error", "n/a")[:60])
+            + (f" (MTP {v['draft_accepted'] / v['draft_n']:.0%})" if v.get("draft_n") else "") for d, v in deep.items()), flush=True)
         save()
     for name, section in sections.items():
         if name not in only:

@@ -27,7 +27,7 @@ The candidates store (`paths.store`) carries each model through
 
 The benchmark (`bench/bench.py`, cases in `bench/cases.py`) works against any OpenAI-compatible
 endpoint: speed timed on the client (prose, tool JSON, a 30k-token prompt, two requests at once,
-two alternating chats) and 97 graded cases × 3 runs in tool use, agent tasks, reasoning,
+two alternating chats, decode speed after ~30k and ~90k tokens of context) and 97 graded cases × 3 runs in tool use, agent tasks, reasoning,
 extraction, code (run in a bubblewrap sandbox), hard multi-step tasks, instruction following,
 judging, Estonian, and an uncensored set of edgy-but-legitimate requests that a stock model
 tends to refuse.
