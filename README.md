@@ -5,7 +5,7 @@ benchmarks each against the model you run in production overnight, and reports i
 A coding agent (Claude Code, headless) does the overnight test by following a written procedure;
 everything around it is plain Python with no dependencies outside the standard library.
 
-Write-up with the results of the first two weeks: [I let an AI agent test local LLMs while I sleep](https://siimtolk.github.io/articles/llm-testing-overnight/).
+Write-up with the results of the first two weeks: [Automated nightly LLM testing: an AI agent benchmarks new local models while I sleep](https://siimtolk.github.io/articles/llm-testing-overnight/).
 
 It was built for one home server (two 16 GB GPUs, llama.cpp and vLLM) that serves a local model
 to an everyday assistant, and it is the repo that machine's nightly test runs from. Every
