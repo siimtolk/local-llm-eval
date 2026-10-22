@@ -1,4 +1,4 @@
-# local-llm-eval
+# local-llm-eval: an automated nightly LLM testing pipeline
 
 An unattended loop that looks for new open-weight models every day, downloads the promising ones,
 benchmarks each against the model you run in production overnight, and reports in the morning.
