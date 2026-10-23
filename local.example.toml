@@ -45,6 +45,10 @@ restore_margin_min = 10             # kept free before window_end to restore pro
 min_test_min = 75                   # a full GGUF test; with less time left the next candidate waits
 vllm_min_test_min = 95              # a vLLM test (first start compiles kernels)
 report_time = "07:10"               # when the morning report runs (only quoted in procedures)
+# Build first (optional): while this command exits 0, the night test waits with production up, at most
+# until build_window_end, so other work on the production model (e.g. agents building tickets) goes first.
+build_busy_command = ""             # e.g. "python3 ~/wiki/tools/tickets.py busy"; empty: off
+build_window_end = ""               # e.g. "04:00"
 
 [agent]
 # The coding agent that follows bench/NIGHTLY.md, started headless.
@@ -72,6 +76,11 @@ poll_url = ""                       # POST {"chatId", "question", "options", "se
 chat_id = ""
 command = ""                        # alternative: a shell command that gets the message on stdin
 short_links = false                 # shorten links (is.gd / TinyURL) for chats that show raw URLs
+
+[wiki]
+# Optional: also drop each test result as a note into a shared LLM wiki's inbox (pipeline/wiki_note.py).
+inbox = ""                          # e.g. "~/wiki/inbox/local-llm-eval"; empty: off
+topic = ""                          # the wiki page results belong to, e.g. "results/model-tests"
 
 [huggingface]
 cli = "hf"                          # huggingface_hub CLI for downloads

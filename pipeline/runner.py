@@ -180,12 +180,36 @@ def model_test(now=False, end=None):
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
         return  # another model test (e.g. an early start) is already running
+    if not now:
+        hold_for_builds(end)
     while (left := int((end - config.now()).total_seconds()) - RESTORE_S) >= MIN_TEST_S:
         with candidates.store() as data:
             ready = ready_queue(data, left)
         if not ready:
             return
         test_one(ready[0][-1], end, early=now)
+
+
+def hold_for_builds(end):
+    """Build first: while [schedule] build_busy_command exits 0 (something else needs the production
+    model, e.g. an agent building a ticket), wait with production up, at most until build_window_end.
+    The tests then get what is left of the window; a test that no longer fits waits for tomorrow."""
+    cmd = config.get("schedule", "build_busy_command", "")
+    if not cmd or not config.get("schedule", "build_window_end", ""):
+        return
+    b = config.hhmm("build_window_end")
+    until = min(end, config.now().replace(hour=b.hour, minute=b.minute, second=0, microsecond=0))
+    if until <= config.now():
+        until += timedelta(days=1)
+        until = min(until, end)
+    held = False
+    while config.now() < until and subprocess.run(cmd, shell=True, capture_output=True).returncode == 0:
+        if not held:
+            log("model-test", "build first", f"builds waiting or running: model test held until {until:%H:%M} at the latest")
+            held = True
+        time.sleep(60)
+    if held:
+        log("model-test", "build first", f"hold ended at {config.now():%H:%M}; testing what fits before {end:%H:%M}")
 
 
 def test_one(repo, end, early=False):

@@ -18,6 +18,7 @@ from datetime import datetime, timedelta, timezone
 
 import config
 import notify
+import wiki_note
 from candidates import expire, index, now, polls, store
 from short_links import link_lines
 from texts import t
@@ -85,6 +86,7 @@ def build():
             if c["status"] in DONE and not c["reported"]:
                 lines.append((c, f"*{c['name']}* · {t('done.' + c['status'])}\n{c['summary'] or t('report.no_summary')}"))
                 c["reported"] = True
+                wiki_note.send(repo, c)
         pending = sum(c["status"] == "pending" for c in data["candidates"].values())
     out = []
     if lines:
