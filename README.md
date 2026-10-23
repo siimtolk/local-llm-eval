@@ -83,7 +83,9 @@ python3 pipeline/runner.py model-test --dry-run --at 01:00        # what tonight
 Schedule the stages with systemd user timers or cron: judge in the morning, report after it,
 fetch after the report, `runner.py model-test` at `schedule.window_start`, and the production
 ensure hook at `schedule.window_end`. Reports go to an HTTP chat bridge, a shell command, or
-stdout (`[notify]`).
+stdout (`[notify]`). The judge can be a hosted model (`claude -p`) or the model you run in
+production (`tools/openai_chat.py`, any OpenAI-compatible server). A bridge that cannot run this
+repo, e.g. one in another container, can queue poll votes in a file for `candidates.py votes`.
 
 ## Results
 
@@ -131,7 +133,7 @@ bench/       bench.py, cases.py, harness.py; NIGHTLY.md and NIGHTLY_VLLM.md, the
 pipeline/    discover, judge, risk, candidates (store), fetch, runner, report, notify, config
 prompts/     the judge prompt
 results/     one JSON per benchmark run
-tools/       leak_check.sh (pre-commit and CI), results_table.py
+tools/       leak_check.sh (pre-commit and CI), results_table.py, agent_settings.py, openai_chat.py (judge command)
 JOURNAL.md   test write-ups, newest first
 ```
 

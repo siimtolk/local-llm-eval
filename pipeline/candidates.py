@@ -13,6 +13,12 @@ Usage: candidates.py list
        candidates.py set <repo> <status> ['<summary for the morning report>']
        candidates.py index                                   (store what the latest judge briefs recommended)
        candidates.py vote <poll id> '<JSON list of ticked options>'   (from the chat bridge)
+       candidates.py votes <inbox file>                       (apply and clear queued votes)
+
+A chat bridge that cannot run this repo (e.g. it lives in another container) can queue its votes
+instead: one JSON line {"poll": <poll id>, "selected": [<ticked options>]} per vote, appended to an
+inbox file under the lock <inbox>.lock; `votes` applies them in order, e.g. from a systemd path
+unit that watches the file.
 """
 import fcntl
 import json
@@ -20,6 +26,7 @@ import re
 import sys
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import config
 from texts import t
@@ -143,6 +150,25 @@ def vote(poll_id, selected):
                 c.update(status="proposed", updated=now())
 
 
+def votes(inbox):
+    """Apply the votes queued in the inbox file (JSON lines), oldest first, then empty it."""
+    inbox = Path(inbox)
+    with open(f"{inbox}.lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        lines = inbox.read_text().splitlines() if inbox.exists() else []
+        for line in lines:
+            try:
+                v = json.loads(line)
+                poll, selected = v["poll"], v["selected"]
+            except (ValueError, KeyError, TypeError):
+                print(f"candidates: bad vote line {line[:200]!r}", file=sys.stderr)
+                continue
+            if isinstance(poll, str) and isinstance(selected, list) and all(isinstance(o, str) for o in selected):
+                vote(poll, selected)
+        if lines:
+            inbox.write_text("")
+
+
 def main():
     args = sys.argv[1:]
     if args == ["list"]:
@@ -164,6 +190,8 @@ def main():
         index()
     elif len(args) == 3 and args[0] == "vote":
         vote(args[1], json.loads(args[2]))
+    elif len(args) == 2 and args[0] == "votes":
+        votes(args[1])
     else:
         sys.exit(__doc__)
 

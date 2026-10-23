@@ -60,6 +60,7 @@ cwd = ""                            # the agent's working directory; empty = thi
 
 [judge]
 # Stage 2: reads the discover output (prompts/judge.md + candidates) on stdin, prints the brief.
+# Your own production model instead: "python3 /path/to/local-llm-eval/tools/openai_chat.py --url http://127.0.0.1:8080 --api-key-file /path/to/key.txt"
 command = "claude -p --output-format text"
 languages = "English"               # what the replacement must handle well
 profile_files = []                  # optional notes about your interests, appended to the judge input
