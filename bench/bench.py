@@ -141,6 +141,7 @@ def main():
     ap.add_argument("--cases", default=str(Path(__file__).resolve().parent / "cases.py"),
                     help="Python file defining SECTIONS (see bench/cases.py)")
     ap.add_argument("--only", help="comma-separated: speed and section names (default: all)")
+    ap.add_argument("--model", help="sent as the request's model field (servers that require it, e.g. capy-flash)")
     args = ap.parse_args()
     # model-written code runs with these directories hidden (cases.py reads it at import)
     os.environ.setdefault("BENCH_SANDBOX_HIDE", ":".join(config.get("bench", "sandbox_hide", [])))
@@ -156,6 +157,8 @@ def main():
     if not isinstance(args.request_extra, dict):
         ap.error("--request-extra must be a JSON object")
     extra.update(args.request_extra)
+    if args.model:
+        extra["model"] = args.model
     client = Client(args.base_url, Path(args.api_key_file).read_text().strip(), args.temperature, extra)
     only, t0 = (args.only or "speed," + ",".join(sections)).split(","), time.time()
     out = Path(args.results_dir) / f"{args.label}.json"
