@@ -78,6 +78,11 @@ argument, e.g. a script that posts the verdict to your chat.
    switches production, every result is a committed JSON file plus a write-up, every commit
    passes the leak check, and each run's final message is kept in a log.
 
+A wrapper around `[agent] command` may defer a run, for example to wait out a provider usage
+limit, by exiting with `[agent] deferred_exit` (75, EX_TEMPFAIL). A deferred candidate goes back
+to `downloaded` instead of `failed`, and the run stops taking further candidates until the next
+nightly window, `bkg-start`, or the wrapper's replay.
+
 ## Run it on your own machine
 
 You need Python 3.11+, the `hf` CLI, Claude Code (or another agent CLI with a compatible

@@ -312,7 +312,7 @@ class TestRunner(Base):
         eid = self.add()
         self.cli("approve", eid)
         self.cli("queue")
-        with mock.patch.object(runner, "agent", return_value=(None, "stopped after 60 min")), \
+        with mock.patch.object(runner, "agent", return_value=(None, "stopped after 60 min", False)), \
                 mock.patch.object(runner.subprocess, "run"), mock.patch.object(runner, "log"):
             runner.test_experiment(eid, config.now().replace(hour=23, minute=59))
         e = self.exps()[eid]
