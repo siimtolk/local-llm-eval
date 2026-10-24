@@ -77,6 +77,7 @@ python3 bench/bench.py --label my-model --base-url http://127.0.0.1:8080 --api-k
 python3 bench/bench.py --label my-model --only judge,extract      # a short run
 python3 pipeline/judge.py --dry-run                               # what the judge would see
 python3 pipeline/fetch.py --dry-run                               # what would be downloaded
+python3 pipeline/candidates.py add someone/Model-GGUF [--now]    # queue a repo for the test (--now: right after the download)
 python3 pipeline/runner.py model-test --dry-run --at 01:00        # what tonight would test, and the prompt
 ```
 

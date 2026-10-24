@@ -19,6 +19,11 @@ GGUF ones) and downloaded on a later run to models/vllm-<name>/. A pending candi
 no GGUF but is such a checkpoint itself goes the same way. The nightly runner tests those with
 bench/NIGHTLY_VLLM.md.
 
+Highest priority first (candidates.py add queues at 1). After each pass the store is read again, so a
+repo queued while this run downloads is taken in the same run. A candidate queued with `add --now`
+(test_now) may take one slot over machine.max_ready; once it is downloaded, `runner.py bkg-start` hands
+the GPUs to the model test (at most once per run) and the outcome goes to the chat.
+
 Usage: fetch.py [--dry-run]   (--dry-run: pick and print, download nothing, change nothing)
 """
 import json
@@ -32,6 +37,7 @@ from urllib.parse import quote
 
 import candidates
 import config
+import notify
 import params
 from texts import t
 
@@ -255,78 +261,111 @@ def fits(repo, gb):
     return gb <= OFFLOAD_GB and bool(active) and active <= MAX_ACTIVE_B
 
 
+def start_test(repo, allowed):
+    """A downloaded candidate queued with `candidates.py add --now` hands the GPUs to the model test
+    now (runner.py bkg-start, which tests the whole downloaded queue) and says so in the chat. Only
+    when allowed (once per fetch run); the flag is cleared either way. True when it ran bkg-start."""
+    with candidates.store(readonly=True) as data:
+        c = data["candidates"].get(repo) or {}
+    if not c.get("test_now") or c.get("status") != "downloaded":
+        return False
+    candidates.update(repo, test_now=False)
+    if not allowed:
+        return False
+    try:
+        run = subprocess.run([sys.executable, str(config.ROOT / "pipeline" / "runner.py"), "bkg-start"],
+                             cwd=config.ROOT, capture_output=True, text=True, timeout=120)
+        lines = (run.stdout + run.stderr).strip().splitlines()
+    except subprocess.TimeoutExpired:
+        lines = ["runner.py bkg-start: no answer within 120 s"]
+    print(f"{repo}: test_now, bkg-start: {' / '.join(lines[-5:])}")
+    notify.send(t("fetch.test_now", repo=repo, out="\n".join(lines[-5:])))
+    return True
+
+
 def main():
     dry = "--dry-run" in sys.argv
-    with candidates.store(readonly=dry) as data:
-        ready = sum(c["status"] in ("downloading", "downloaded") for c in data["candidates"].values())
-        # GGUF candidates first (vLLM builds have priority -1), then oldest brief
-        todo = sorted((-int(c.get("priority", 0)), c.get("brief", ""), repo, dict(c)) for repo, c in data["candidates"].items()
-                      if c["status"] == "pending" and candidates.valid_repo(repo))
-        unchecked = [(repo, dict(c)) for repo, c in data["candidates"].items()
-                     if c["status"] in ("downloaded", "testing", "tested", "rejected") and c.get("model")
-                     and c.get("backend") != "vllm" and c.get("brief", "") >= VLLM_SINCE
-                     and not c.get("vllm_checked") and candidates.valid_repo(repo)]
-    if dry:
-        print(f"dry run: {len(todo)} pending, {ready} downloading or downloaded (max {MAX_READY}), "
-              f"{len(unchecked)} GGUF candidates not yet searched for a vLLM build")
-    if not dry:  # GGUF candidates downloaded earlier (rejected too: the backend is the question): look once
-        for repo, c in unchecked:
-            add_sibling(repo, c)
-    for _, _, repo, c in todo:
-        if ready >= MAX_READY:
+    seen, first, tested = set(), True, False
+    while True:  # after each pass the store is read again: a repo queued meanwhile (candidates.py add) is taken too
+        with candidates.store(readonly=True) as data:
+            ready = sum(c["status"] in ("downloading", "downloaded") for c in data["candidates"].values())
+            # highest priority first (add 1, judge picks 0, vLLM builds -1), then oldest brief
+            todo = sorted((-int(c.get("priority", 0)), c.get("brief", ""), repo, dict(c)) for repo, c in data["candidates"].items()
+                          if c["status"] == "pending" and candidates.valid_repo(repo) and repo not in seen)
+            unchecked = [(repo, dict(c)) for repo, c in data["candidates"].items()
+                         if c["status"] in ("downloaded", "testing", "tested", "rejected") and c.get("model")
+                         and c.get("backend") != "vllm" and c.get("brief", "") >= VLLM_SINCE
+                         and not c.get("vllm_checked") and candidates.valid_repo(repo)] if first else []
+        if dry and first:
+            print(f"dry run: {len(todo)} pending, {ready} downloading or downloaded (max {MAX_READY}), "
+                  f"{len(unchecked)} GGUF candidates not yet searched for a vLLM build")
+        if not dry:  # GGUF candidates downloaded earlier (rejected too: the backend is the question): look once
+            for repo, c in unchecked:
+                add_sibling(repo, c)
+        first = False
+        if not todo:
             return
-        try:
-            if c.get("backend") == "vllm":
-                ready += fetch_vllm(repo, c, dry)
+        for _, _, repo, c in todo:
+            seen.add(repo)
+            if ready >= MAX_READY + bool(c.get("test_now")):  # one asked to be tested now may take one slot more
                 continue
-            full = all_files(repo)
-        except (OSError, ValueError) as exc:
-            print(f"{repo}: listing failed: {exc}", file=sys.stderr)
-            continue
-        listing = {p: s for p, s in full.items() if p.lower().endswith(".gguf")}
-        chosen = pick(repo, listing, c.get("quant_override", ""))
-        if not chosen:
             try:
-                label, gb, keep, why = vllm_pick(repo, full)
-            except (OSError, ValueError):
-                why = "no safetensors"
-            if not why:  # no GGUF, but a vLLM-ready checkpoint itself
-                if not dry:
-                    candidates.update(repo, backend="vllm", priority=-1)
-                ready += fetch_vllm(repo, c, dry, label, gb, keep)
+                if c.get("backend") == "vllm":
+                    ready += fetch_vllm(repo, c, dry)
+                    tested |= not dry and start_test(repo, not tested)
+                    continue
+                full = all_files(repo)
+            except (OSError, ValueError) as exc:
+                print(f"{repo}: listing failed: {exc}", file=sys.stderr)
                 continue
-            print(f"{repo}: no GGUF weights ({why})")
-            if not dry:
-                candidates.update(repo, status="skipped", summary=t("fetch.no_weights"))
-            continue
-        tag, parts, extras, fit = chosen
-        gb = sum(listing[p] for p in parts) / 1e9
-        total_gb = gb + sum(listing[p] for p in extras) / 1e9
-        free_gb = shutil.disk_usage(MODELS).free / 1e9
-        if not fit:
-            print(f"{repo}: {gb:.1f} GB does not fit")
-            if not dry:
-                candidates.update(repo, status="skipped", summary=t("fetch.too_big", tag=tag, gb=gb))
-            continue
-        if free_gb - total_gb < MIN_FREE_GB:
-            print(f"{repo}: not enough disk ({free_gb:.0f} GB free, needs {total_gb:.0f} GB + {MIN_FREE_GB})")
-            return
-        model = model_name(repo)
-        print(f"{repo}: {model} {tag} {gb:.1f} GB {parts + extras}")
+            listing = {p: s for p, s in full.items() if p.lower().endswith(".gguf")}
+            chosen = pick(repo, listing, c.get("quant_override", ""))
+            if not chosen:
+                try:
+                    label, gb, keep, why = vllm_pick(repo, full)
+                except (OSError, ValueError):
+                    why = "no safetensors"
+                if not why:  # no GGUF, but a vLLM-ready checkpoint itself
+                    if not dry:
+                        candidates.update(repo, backend="vllm", priority=-1)
+                    ready += fetch_vllm(repo, c, dry, label, gb, keep)
+                    tested |= not dry and start_test(repo, not tested)
+                    continue
+                print(f"{repo}: no GGUF weights ({why})")
+                if not dry:
+                    candidates.update(repo, status="skipped", summary=t("fetch.no_weights"))
+                continue
+            tag, parts, extras, fit = chosen
+            gb = sum(listing[p] for p in parts) / 1e9
+            total_gb = gb + sum(listing[p] for p in extras) / 1e9
+            free_gb = shutil.disk_usage(MODELS).free / 1e9
+            if not fit:
+                print(f"{repo}: {gb:.1f} GB does not fit")
+                if not dry:
+                    candidates.update(repo, status="skipped", summary=t("fetch.too_big", tag=tag, gb=gb))
+                continue
+            if free_gb - total_gb < MIN_FREE_GB:
+                print(f"{repo}: not enough disk ({free_gb:.0f} GB free, needs {total_gb:.0f} GB + {MIN_FREE_GB})")
+                return
+            model = model_name(repo)
+            print(f"{repo}: {model} {tag} {gb:.1f} GB {parts + extras}")
+            if dry:
+                continue
+            candidates.update(repo, status="downloading", model=model, quant=tag, files=parts + extras, size_gb=round(gb, 1))
+            ready += 1
+            with open(LOGS / f"{model}-download.log", "w") as out:
+                done = subprocess.run(["nice", "-n", "10", HF, "download", repo, *parts, *extras,
+                                       "--local-dir", str(MODELS / model)], stdout=out, stderr=out).returncode == 0
+            if done:
+                candidates.update(repo, status="downloaded")
+                tested |= start_test(repo, not tested)
+                add_sibling(repo, c)
+            else:
+                shutil.rmtree(MODELS / model, ignore_errors=True)
+                candidates.update(repo, status="pending", model="")
+                print(f"{repo}: download failed, see logs/{model}-download.log", file=sys.stderr)
         if dry:
-            continue
-        candidates.update(repo, status="downloading", model=model, quant=tag, files=parts + extras, size_gb=round(gb, 1))
-        ready += 1
-        with open(LOGS / f"{model}-download.log", "w") as out:
-            done = subprocess.run(["nice", "-n", "10", HF, "download", repo, *parts, *extras,
-                                   "--local-dir", str(MODELS / model)], stdout=out, stderr=out).returncode == 0
-        if done:
-            candidates.update(repo, status="downloaded")
-            add_sibling(repo, c)
-        else:
-            shutil.rmtree(MODELS / model, ignore_errors=True)
-            candidates.update(repo, status="pending", model="")
-            print(f"{repo}: download failed, see logs/{model}-download.log", file=sys.stderr)
+            return
 
 
 if __name__ == "__main__":
