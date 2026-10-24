@@ -32,6 +32,33 @@ extraction, code (run in a bubblewrap sandbox), hard multi-step tasks, instructi
 judging, Estonian, and an uncensored set of edgy-but-legitimate requests that a stock model
 tends to refuse.
 
+## Experiments
+
+Models are one kind of experiment. A `config` experiment changes how production's model is served
+(a server argument such as the KV cache type, sampling, a newer llama.cpp build); an `engine`
+experiment serves it with another backend (`llamacpp`, `vllm`, `capy`). Both run on the test port
+with the same suite by `bench/EXPERIMENT.md`, in the same queue as the candidates (higher
+priority first, then oldest), and never change production. A `model` experiment is a candidate:
+it stays in the candidates store and `candidates.py` as before.
+
+Config and engine experiments live in `paths.experiments` and go
+`planned → approved → queued → running → beneficial | not-beneficial | failed` (or `dropped`).
+A spec names its metrics (`passed`, `passed.<section>`, `tok_s.<speed test>`, `ttft.<speed test>`)
+and a pass rule: conditions `min_delta` / `max_delta` (variant − baseline) and `min_ratio` /
+`max_ratio` (variant / baseline) against production's baseline (`[production] baseline`). The
+verdict is computed in code, never by the agent; a baseline from another suite makes it `failed`.
+
+```bash
+python3 pipeline/experiments.py add --spec-file kv-q8.json   # validated, stored as planned; prints the id
+python3 pipeline/experiments.py approve 20261024-kv-q8        # then: queue (approved -> queued)
+python3 pipeline/experiments.py list [--json]                 # both stores; show <id|repo> for one
+python3 pipeline/experiments.py verdict 20261024-kv-q8 exp-20261024-kv-q8   # run by the procedure
+```
+
+After a final status a note goes to the wiki inbox (`[wiki] inbox`) and
+`[experiments] verdict_command`, if set, runs with the id (a repo, for a model) as its last
+argument, e.g. a script that posts the verdict to your chat.
+
 ## Five rules for running an agent unattended
 
 1. **The deadline is enforced from outside.** The runner gives the agent a time limit, kills its
@@ -130,8 +157,8 @@ Write-ups are in [JOURNAL.md](JOURNAL.md), raw numbers in `results/`. The table 
 ## Layout
 
 ```
-bench/       bench.py, cases.py, harness.py; NIGHTLY.md and NIGHTLY_VLLM.md, the agent's procedures
-pipeline/    discover, judge, risk, candidates (store), fetch, runner, report, notify, config
+bench/       bench.py, cases.py, harness.py; NIGHTLY.md, NIGHTLY_VLLM.md and EXPERIMENT.md, the agent's procedures
+pipeline/    discover, judge, risk, candidates (store), experiments, fetch, runner, report, notify, config
 prompts/     the judge prompt
 results/     one JSON per benchmark run
 tools/       leak_check.sh (pre-commit and CI), results_table.py, agent_settings.py, openai_chat.py (judge command)

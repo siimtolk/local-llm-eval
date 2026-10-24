@@ -11,6 +11,7 @@ Status: proposed (offered in the report's poll, not ticked yet) -> pending -> do
 Usage: candidates.py list
        candidates.py next                                    (oldest pending as JSON, or nothing)
        candidates.py set <repo> <status> ['<summary for the morning report>']
+                                                             (tested/rejected/failed: also [experiments] verdict_command)
        candidates.py index                                   (store what the latest judge briefs recommended)
        candidates.py vote <poll id> '<JSON list of ticked options>'   (from the chat bridge)
        candidates.py votes <inbox file>                       (apply and clear queued votes)
@@ -256,6 +257,8 @@ def main():
             update(args[1], status=args[2], **({"summary": args[3].strip()[:1000]} if len(args) == 4 else {}))
         except KeyError:
             sys.exit(f"candidates: no candidate {args[1]}")
+        import experiments  # here: experiments imports this module
+        experiments.model_finished(args[1], args[2])  # [experiments] verdict_command, on a final status
     elif args == ["index"]:
         index()
     elif len(args) == 3 and args[0] == "vote":

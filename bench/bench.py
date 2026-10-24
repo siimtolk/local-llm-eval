@@ -136,6 +136,8 @@ def main():
     ap.add_argument("--temperature", type=float, help="sent with every request; default: the server's")
     ap.add_argument("--thinking", choices=["on", "off"], help="force thinking on or off; default: the server's")
     ap.add_argument("--reasoning-effort", help="sent as reasoning_effort (e.g. low, medium, high, none)")
+    ap.add_argument("--request-extra", type=json.loads, default={},
+                    help="a JSON object merged into every request (an experiment's variant.request_extra)")
     ap.add_argument("--cases", default=str(Path(__file__).resolve().parent / "cases.py"),
                     help="Python file defining SECTIONS (see bench/cases.py)")
     ap.add_argument("--only", help="comma-separated: speed and section names (default: all)")
@@ -151,6 +153,9 @@ def main():
             extra["reasoning_effort"] = "none"
     if args.reasoning_effort:
         extra["reasoning_effort"] = args.reasoning_effort
+    if not isinstance(args.request_extra, dict):
+        ap.error("--request-extra must be a JSON object")
+    extra.update(args.request_extra)
     client = Client(args.base_url, Path(args.api_key_file).read_text().strip(), args.temperature, extra)
     only, t0 = (args.only or "speed," + ",".join(sections)).split(","), time.time()
     out = Path(args.results_dir) / f"{args.label}.json"
