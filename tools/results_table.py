@@ -50,7 +50,7 @@ def rank(res):
 def rows(results):
     runs = {}
     for path in sorted(results.glob("*.json")):
-        if path.name.startswith("_") or path.stem.endswith("_nothink"):
+        if path.name.startswith(("_", "exp-")) or path.stem.endswith("_nothink"):  # exp-: experiments, not models
             continue
         res = json.loads(path.read_text())
         label = res.get("label") or path.stem

@@ -11,6 +11,7 @@ model_configs = "models.d"          # serving configs, <name>.conf.sh (relative 
 logs = "logs"                       # download and server logs (relative to serving)
 results = "results"                 # bench results, <label>.json (tracked)
 store = "state/candidates.json"     # the candidates store (gitignored)
+experiments = "state/experiments.json"   # config/engine experiments (gitignored); models stay in store
 state = "state"                     # locks, poll registry, discover state (gitignored)
 runs = "state/runs"                 # final text of every agent run (gitignored)
 polls = "state/model_polls.json"   # poll registry (option text -> repo), read by candidates.py vote
@@ -81,6 +82,12 @@ short_links = false                 # shorten links (is.gd / TinyURL) for chats 
 # Optional: also drop each test result as a note into a shared LLM wiki's inbox (pipeline/wiki_note.py).
 inbox = ""                          # e.g. "~/wiki/inbox/local-llm-eval"; empty: off
 topic = ""                          # the wiki page results belong to, e.g. "results/model-tests"
+
+[experiments]
+# Run after an experiment's final status (also a model's tested/rejected/failed) with its id (a repo,
+# for a model) as the last argument: an argument list, no shell, 60 s limit, failures only logged.
+# E.g. a chat bridge script that posts the verdict: ["~/bin/post-verdict"]. Empty: off.
+verdict_command = []
 
 [huggingface]
 cli = "hf"                          # huggingface_hub CLI for downloads
