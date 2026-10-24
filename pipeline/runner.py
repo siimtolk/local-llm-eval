@@ -69,7 +69,9 @@ def agent_cmd(prompt, system, cwd, max_turns):
 
 def agent(prompt, system, cwd, timeout, max_turns):
     """Run the agent in its own process group; on timeout the whole group is killed.
-    Returns (parsed JSON output or None, error text)."""
+    Returns (parsed JSON output or None, error text, deferred) — deferred is True when the process
+    exited with [agent] deferred_exit, a wrapper around the agent command that deferred the run
+    (e.g. to wait out a provider usage limit)."""
     proc = subprocess.Popen(agent_cmd(prompt, system, cwd, max_turns), cwd=cwd, stdin=subprocess.DEVNULL,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
     try:
@@ -81,11 +83,12 @@ def agent(prompt, system, cwd, timeout, max_turns):
         except subprocess.TimeoutExpired:
             os.killpg(proc.pid, signal.SIGKILL)
             proc.communicate()
-        return None, f"stopped after {timeout // 60} min"
+        return None, f"stopped after {timeout // 60} min", False
+    deferred = proc.returncode == config.get("agent", "deferred_exit", 75)
     try:
-        return json.loads(out), ""
+        return json.loads(out), "", deferred
     except json.JSONDecodeError:
-        return None, f"exit {proc.returncode}: {(err or out).strip()[-500:] or 'no output'}"
+        return None, f"exit {proc.returncode}: {(err or out).strip()[-500:] or 'no output'}", deferred
 
 
 def log(name, title, text):
@@ -223,7 +226,8 @@ def model_test(now=False, end=None):
             ready = ready_queue(data, left, exps)
         if not ready:
             return
-        (test_one if ready[0][2] == "model" else test_experiment)(ready[0][-1], end, early=now)
+        if (test_one if ready[0][2] == "model" else test_experiment)(ready[0][-1], end, early=now):
+            return  # a deferred run: the next nightly window, bkg-start, or the wrapper's replay picks them up
 
 
 def hold_for_builds(end):
@@ -249,12 +253,15 @@ def hold_for_builds(end):
 
 
 def test_one(repo, end, early=False):
+    """One candidate: the agent follows NIGHTLY.md (or NIGHTLY_VLLM.md). An unfinished run is
+    marked failed, but a run the wrapper deferred (exit [agent] deferred_exit) goes back to
+    downloaded and the function returns True, so model_test stops taking further candidates."""
     with candidates.store() as data:
         c = data["candidates"][repo]
         c.update(status="testing", updated=candidates.now(), reported=False)
         c = dict(c)
     seconds = int((end - config.now()).total_seconds()) - RESTORE_S
-    out, err = agent(prompt_for(repo, c, end, early), SYSTEM, agent_cwd(), seconds, config.get("agent", "max_turns", 400))
+    out, err, deferred = agent(prompt_for(repo, c, end, early), SYSTEM, agent_cwd(), seconds, config.get("agent", "max_turns", 400))
     result = err if out is None else (out.get("result") or "").strip()
     log("model-test", f"model test: {repo}", result)
     subprocess.run(stop_cmd(c), capture_output=True)
@@ -262,8 +269,13 @@ def test_one(repo, end, early=False):
     with candidates.store() as data:
         c = data["candidates"][repo]
         if c["status"] == "testing":
+            if deferred:
+                c.update(status="downloaded", updated=candidates.now())
+                print(f"model test deferred: {repo}")
+                return True
             c.update(status="failed", updated=candidates.now(), reported=False,
                      summary=c.get("summary") or t("test.unfinished", why=err or t("test.no_result")))
+    return False
 
 
 def test_experiment(eid, end, early=False):
@@ -274,7 +286,7 @@ def test_experiment(eid, end, early=False):
         e.update(status="running", updated=candidates.now())
         e = dict(e)
     seconds = int((end - config.now()).total_seconds()) - RESTORE_S
-    out, err = agent(prompt_for(eid, e, end, early), SYSTEM, agent_cwd(), seconds, config.get("agent", "max_turns", 400))
+    out, err, _ = agent(prompt_for(eid, e, end, early), SYSTEM, agent_cwd(), seconds, config.get("agent", "max_turns", 400))
     result = err if out is None else (out.get("result") or "").strip()
     log("experiment", f"experiment: {eid}", result)
     subprocess.run(stop_cmd(e), capture_output=True)

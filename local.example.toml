@@ -56,6 +56,7 @@ build_window_end = ""               # e.g. "04:00"
 command = "claude"                  # Claude Code CLI; on PATH or an absolute path
 permission_mode = "auto"
 max_turns = 400
+deferred_exit = 75                 # a wrapper around `command` exits with this code (EX_TEMPFAIL) to defer a run: the candidate goes back to the queue, not failed
 path_env = "~/.local/bin:/usr/local/bin:/usr/bin:/bin"   # PATH for background units (bkg-start)
 bkg_unit = "local-llm-eval-bkg"     # transient systemd user unit for on-demand runs
 nightly_units = ["local-llm-eval-test", "local-llm-eval-test-early"]   # the nightly test's units
