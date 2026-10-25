@@ -5,6 +5,37 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## 2026-10-25 — rvn-qwen3.8-flash-next-abliterated (IQ3_XS)
+
+Question: can the 125B-total / ~6B-active MoE RVN Qwen3.8-Flash-Next (abliterated, 0bserverx, licence
+qwen-community-1.0, no MTP head, no vision) run on 2 x RTX 5060 Ti + 78 GB RAM and match production?
+Started by hand at 15:53 (outside the window); production was stopped from ~15:55 until restored after the nothink pass (~22:00).
+
+Setup: llama.cpp-next, IQ3_XS (8 files, 86 GB: experts 54 GB, PLE table 29 GB), `--n-cpu-moe 30
+--tensor-split 39,9`, `--ctx-size 262144 --parallel 2`, q4_0 KV, flash attention, `--reasoning-effort low`,
+no speculation. Loaded in ~5 min. Label `rvn-qwen3.8-flash-next-abliterated_iq3xs_nospec_2gpu_128k`.
+
+| | candidate | production |
+|---|---|---|
+| graded runs passed (excl. uncensored) | 268/291 | 283/291 |
+| Estonian | 41/45 | 41/45 |
+| uncensored | 11/11 | 11/11 |
+| thinking off (tools, extract, instruct, judge, estonian) | 114/141 | 113/141 |
+| prose / tool-JSON / prompt tok/s | 15.2 / 18.3 / 125 | 46.0 / 65.5 / 1213 |
+| two at once (total) | 20.0 (10.5 + 10.5) | 69 |
+| follow-up time to first token | 1.8 s | 1.3 s |
+| decode after 30k / 90k | 14.9 / 14.0 | see depth file |
+| suite wall-clock | 16065 s | 3666 s |
+
+Per section: tools 41/42, agent 43/48, reason 30/30, extract 12/15, code 19/24 (3 out of tokens),
+hard 44/48 (2 out of tokens; failed long_context_lookup, very_long_context), instruct 20/21, judge 18/18,
+estonian 41/45, uncensored 11/11. Thinking off: tools 38/42, extract 11/15, instruct 17/21, judge 18/18,
+estonian 30/45 (the switch works: much faster, but Estonian drops).
+
+Takeaways: quality is a little below production (268 vs 283), speed is about 3x slower in decode and 10x
+slower in prompt processing, because 30 blocks of experts and the PLE table live in RAM; the suite took 4.4 h
+against 1 h. No advantage in context, vision or speed. Rejected; weights deleted.
+
 ## Test results (2026-10-25) — Qwen3.8-27B QUASAR-QAT NVFP4 on capy-flash (capy-qwen3.8-27b-quasar-nvfp4)
 
 Question: is capy-flash (v0.7.4, commit 3193faf, a two-GPU tensor-parallel engine for Qwen3.8-27B on
