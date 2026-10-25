@@ -126,6 +126,14 @@ context with vision):
   2.1x with two at once. The author's 175 tok/s on 2 x 5070 Ti fits roughly twice the memory
   bandwidth.
 
+**Follow-up 2026-10-25 (production's shape, speed pass only):** `-- --max-context 262144 --max-concurrency 2`
+(a 256k pool for two lanes, like production's 2 x 128k), effort low, label
+`capy-qwen3.8-27b-quasar-nvfp4_capy0.7.4_tp2_conc2_ctx262144_efflow`. It started on the first try:
+"KV 262,144 tokens, int8 | runtime 5.11 GiB | free 1.63 GiB", VRAM 14,275 + 13,991 MiB. Prose 78.3 tok/s,
+tool JSON 121.3, 30k prompt 2,851 tok/s, two at once 145.4 (76.0 + 76.9), decode after 30k / 90k 76.0 / 68.2
+(MTP 49 / 47%), alternating chats 4.1 s first turn and 4.2 s follow-ups. The speed matches the 196k run; the
+follow-up average (2.2 s at 196k, concurrency 2) did not: one run, so noise is not ruled out.
+
 ## Test results (2026-10-22) — Qwen3.8-27B Turbo Brilliance 50X NEO MAX MTP (DavidAU)
 
 Question: is DavidAU's "Turbo Brilliance" Qwen3.8-27B (a lightly tuned dense Qwen3.8-27B with
