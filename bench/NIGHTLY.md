@@ -47,7 +47,7 @@ plain text, at most ~600 characters, in `$SUMMARY_LANGUAGE`, no headings or tabl
 
 ## Fit
 
-`$MACHINE`. The reference machine has 32 GB VRAM over two 16 GB GPUs (CUDA0, CUDA1) and 46 GB
+`$MACHINE`. The reference machine has 32 GB VRAM over two 16 GB GPUs (CUDA0, CUDA1) and 78 GB
 RAM; scale the numbers to yours. Use a Q4-class quant (IQ4_XS, Q4_K_M, or the card's recommended
 4-bit). Weights up to ~26 GB fit with two 128k slots and a q4_0 KV cache. A MoE up to ~60 GB with
 at most ~12B active parameters can offload experts to RAM (`--n-cpu-moe`); a dense model that does
