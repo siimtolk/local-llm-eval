@@ -5,6 +5,127 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## Test results (2026-10-25) — Qwen3.8-27B QUASAR-QAT NVFP4 on capy-flash (capy-qwen3.8-27b-quasar-nvfp4)
+
+Question: is capy-flash (v0.7.4, commit 3193faf, a two-GPU tensor-parallel engine for Qwen3.8-27B on
+RTX 50 cards) on these two RTX 5060 Ti clearly faster than production (llama.cpp b11707, RVN IQ4_XS,
+MTP) at comparable quality, and what does it do to latency in real use? This was a measurement only;
+production was not switched. The owner started the test by hand at 04:01, outside the nightly
+window. Production was stopped from 04:02 to 05:01. Model: `Feyd89/Qwen3.8-27B-QUASAR-QAT-nvfp4-NInfer`
+(`.ninfer` v3, 17.4 GB: stock Qwen3.8-27B, QUASAR-QAT's quantization-aware NVFP4 projections, FP8
+head and embedding, MTP and vision included, no DFlash2 drafter; Apache 2.0). It is not
+uncensored.
+
+Setup: `bin/serve start capy-qwen3.8-27b-quasar-nvfp4 --backend capy --port 8085`, which runs
+`CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=0,1 capy-flash/current/serve-tp2.sh
+models/capy-qwen3.8-27b-quasar-nvfp4/qwen3_8_27b_quasar_nvfp4.ninfer --api-key-file secrets/qwen3-8-27b-rvn/api_key.txt`
+(`ninfer-serve --profile 27b`: TP=2 on devices 0,1, p2p off with host-staged copies, INT8 KV,
+`--max-context 196608`, `--max-concurrency 1`, `--spec mtp --draft-tokens 3`, vision on device 0,
+4 device states plus 8 host states and 8 GiB of host KV for the context cache). It started at full
+defaults on the first try with no step-downs: 1m08s to ready, weights 8.66 / 8.38 GiB per rank,
+"KV 196,608 tokens, int8 | runtime 3.93 GiB | free 2.81 GiB". The context that fit is
+**1 x 196,608 tokens**. With `-- --max-concurrency 2`, two requests share the same 196,608-token
+pool. Sanity checks passed: reasoning is split from content, the `get_weather` tool call parses,
+`enable_thinking: false` gives no reasoning. Requests must send `model: qwen3.8-27b`.
+
+Reasoning effort: production runs `--reasoning-effort low`. capy-flash has no server default for
+effort; the template's default is full thinking. The template does honour the request's
+`reasoning_effort: low`: a semver prompt took 5955 tokens at the default and 1607 at low. So the
+suite ran twice:
+- At the server default (full thinking), label `capy-qwen3.8-27b-quasar-nvfp4_capy0.7.4_tp2`. This
+  run is from 2026-10-24 19:22–20:21: an earlier start had completed the whole suite but nothing
+  after it, and it was reused as is.
+- With `--reasoning-effort low`, label `..._tp2_efflow`, run tonight. This is the run comparable
+  with production.
+
+capy rejects `reasoning_effort` together with `enable_thinking: false` (HTTP 400 "conflicting
+template option"), so the thinking-off passes send no effort. Two speed-only passes followed:
+`..._tp2_conc2_efflow` (`-- --max-concurrency 2`) and `..._tp2_conc2_preservethink_efflow` (also
+`--preserve-thinking`). `--spec dflash2` was not tried: it needs a DFlash2 drafter, and this
+artifact has none.
+
+| | Qwen3.8-27B RVN, llama.cpp (prod) | capy-flash, effort low | capy-flash, server default (full thinking) | vLLM 0.32, Heretic ARA NVFP4 (2026-10-21) |
+|---|---|---|---|---|
+| Context | 2 x 128k (q4_0 KV) | 1 x 196,608 (int8 KV) | same | 2 x 128k (int4 KV) |
+| Graded runs passed | **283 / 291** | 280 / 291 | 272 / 291 | 278 / 291 |
+| of which Estonian | **41 / 45** | 40 / 45 | **41 / 45** | 37 / 45 |
+| Uncensored answered | **11 / 11** | 10 / 11 (torrents out of tokens) | 6 / 11 (5 out of tokens) | 11 / 11 |
+| Out of tokens (graded) | 2 | 3 | 14 | |
+| Graded suite, wall-clock and tokens | 54.5 min, 150k | **34.5 min**, 155k | 52.4 min, 229k | |
+| Thinking off (tools, extract, instruct, judge, Estonian) | 113 / 141 | **117 and 120 / 141** (two runs) | | 115 / 141 |
+| Prose generation | 46.0 tok/s (MTP 54%) | **77.0** (46%); 82.2 at concurrency 2 | 78.3 (49%) | 59.1 |
+| Tool-call JSON generation | 65.5 tok/s (92%) | **121.5** (91%) | 120.0 (91%) | 89.1 |
+| Prompt processing (30k) | 1213 tok/s | **2855 tok/s** | 2833 | 1161 |
+| Decode after ~30k / ~90k of context | 39.0 / 26.5 tok/s | **78.3 / 68.8** (MTP 51 / 48%) | 72.2 / 76.3 | |
+| Two requests at once (total) | 69 tok/s (38 + 38) | 88.1 at concurrency 1 (queued: second starts after 6.1 s); **147.8** (79.3 + 75.3) at concurrency 2 | 88.0 (queued) | 116.6 |
+| Alternating chats: first turn / follow-up time to first token | 10.3 / **1.3 s** | **4.1** / 4.2 s; 4.1 / 2.2 s at concurrency 2 | 4.0 / 4.2 s | 8.5 / 2.9 s |
+| VRAM, both 5060 Ti | 25.5 GB | 25.9 GB (13,071 + 12,789 MiB, fixed at start) | same | 30.2 GB |
+
+Per section (passed / runs):
+
+| Section | RVN (prod) | capy, effort low | capy, default | capy, thinking off (run 1 / run 2) | RVN, thinking off |
+|---|---|---|---|---|---|
+| tools | 42/42 | 42/42 | 42/42 | 39/42 / 39/42 | 38/42 |
+| agent | 47/48 | 46/48 | **48/48** | | |
+| reason | 30/30 | 30/30 | 30/30 | | |
+| extract | **15/15** | 14/15 | 13/15 | 12/15 / 12/15 | 12/15 |
+| code | 21/24 | 21/24 | 12/24 | | |
+| hard | 48/48 | 48/48 | 47/48 | | |
+| instruct | 21/21 | 21/21 | 21/21 | 15/21 / **19/21** | 16/21 |
+| judge | 18/18 | 18/18 | 18/18 | 18/18 / 18/18 | 18/18 |
+| estonian | **41/45** | 40/45 | **41/45** | **33/45** / 32/45 | 29/45 |
+
+**Takeaways:**
+- At effort low, quality is close to production: 280 vs 283 graded. The misses were
+  remembered_pref twice (agent), release_name (extract), eval_expr and next_cron (code, 3 out of
+  tokens), and in Estonian et_jalg, et_number_words and et_tutar. At the server default the model
+  thinks until the 6000-token cap: code falls to 12/24 (12 out of tokens), and 5 uncensored cases
+  run out of tokens. Those 5 are token-cap failures, not refusals. Production's assistant would
+  have to send `reasoning_effort: low` with every request; `--default-thinking-budget` is the
+  server-side alternative, and it was not tested.
+- At effort low there was one uncensored miss, torrents, which ran out of tokens; no outright
+  refusal was seen. The weights are stock Qwen3.8 and not abliterated, so that result is not
+  guaranteed.
+- Speed is the strength. Single-request generation is 1.7x production (77 vs 46 prose, 121 vs
+  65 tool JSON). Prefill is 2.4x. Decode holds up deep in context, 69 tok/s after 90k against
+  production's 26.5, about 2.6x. Two at once is 148 tok/s with `--max-concurrency 2`, about 2.1x.
+  It also beats vLLM on every speed row, at 4 GB less VRAM.
+- Latency in real use: the 27b profile serves one request at a time, so a second request waits
+  for the first (6.1 s here). The bigger cost is follow-ups. An alternating chat's follow-up took
+  4.2 s against production's 1.3 s: capy re-reads the whole 13k history. `--prefill-miss-dump`
+  shows why. The follow-up matches the cached prompt for all 12,906 tokens up to `<think>`, then
+  diverges, because the template drops the earlier turn's thinking while the cache holds prompt +
+  thinking. The first follow-up of each chat therefore misses. From the second one on, a "long
+  anchor" hits (99.5%, 0.27 s). That is why the average is 2.2 s at concurrency 2. At concurrency
+  1 every follow-up missed. `--preserve-thinking` changed nothing, since bench.py does not send
+  the reasoning back.
+- Thinking off works, at 117 and 120 / 141 against production's 113, and is better in Estonian
+  (33 vs 29).
+- Verdict: **tested** (worth a live trial; the weights and the release stay). On the run
+  comparable with production (effort low) it meets every point of the capy bar: graded 280 >= 278,
+  Estonian 40 >= 38, clearly faster (prose 1.7x, two at once 2.1x), at least 1 x 128k context
+  (196,608). On the server's default reasoning it would be rejected (272/291). A live trial needs
+  effort low set per request (or a thinking budget). It also has to accept slower follow-ups,
+  single-request serving (or a shared 196k pool at concurrency 2), and stock-model censorship.
+
+**For the capy-flash thread** (2 x RTX 5060 Ti 16 GB, PCIe, no P2P (host-staged copies), Fedora,
+release v0.7.4, profile `27b`, Feyd89's QUASAR-QAT NVFP4 artifact, MTP 3, INT8 KV, 196,608-token
+context with vision):
+- Decode: about 77–82 tok/s on prose and about 120 tok/s on tool-call JSON. MTP acceptance was
+  ~46–50% on prose and ~91% on JSON.
+- Decode deep in context: 78–82 tok/s after 30k tokens and 69–76 tok/s after 90k tokens. llama.cpp
+  on the same cards gives 39 and 27.
+- Prefill: about 2,850 tok/s on a 30k-token prompt; a 91k-token prompt took 46.7 s (~1,960 tok/s).
+- Two requests at once: 148 tok/s total (79 + 75) with `--max-concurrency 2`. The stock profile
+  queues the second request.
+- Follow-up latency: in alternating 13k-token chats, the first follow-up of each conversation
+  re-prefills (about 4 s) because the template drops the previous turn's thinking. Later
+  follow-ups hit a long anchor, about 0.27 s to first token.
+- VRAM: 13.1 + 12.8 GB. Load time: about 68 s from NVMe.
+- On the same cards llama.cpp with MTP does 46 tok/s, so this is about 1.7x single-request and
+  2.1x with two at once. The author's 175 tok/s on 2 x 5070 Ti fits roughly twice the memory
+  bandwidth.
+
 ## Test results (2026-10-22) — Qwen3.8-27B Turbo Brilliance 50X NEO MAX MTP (DavidAU)
 
 Question: is DavidAU's "Turbo Brilliance" Qwen3.8-27B (a lightly tuned dense Qwen3.8-27B with
