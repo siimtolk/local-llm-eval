@@ -80,18 +80,14 @@ def speed(res):
     }
 
 
-QUANTS = {"iq4xs": "IQ4_XS", "q4km": "Q4_K_M", "iq3s": "IQ3_S", "iq3s1": "IQ3_S", "iq3xs": "IQ3_XS", "iq2xxs": "IQ2_XXS",
-          "iq2mix": "IQ2 mix", "q6k": "Q6_K"}
 SPEC = {"mtp": "MTP drafting", "dflash": "DFlash drafting", "nospec": "no drafting"}
 
 
 def derive_details(key):
-    """A short serving summary from the setup key (<model>_<quant>_<spec>_<gpus>_<context>), used when board_names.json has no `detail`."""
+    """A short serving summary from the setup key (<model>_<quant>_<spec>_<gpus>_<context>; the quant is part of the name), used when board_names.json has no `detail`."""
     out = []
     for p in key.split("_")[1:]:
-        if p in QUANTS:
-            out.append(QUANTS[p])
-        elif p in SPEC:
+        if p in SPEC:
             out.append(SPEC[p])
         elif re.fullmatch(r"\d+gpu", p):
             out.append(p[:-3] + " GPUs")
@@ -102,6 +98,19 @@ def derive_details(key):
         elif p == "tp2":
             out.append("2 GPUs")
     return " · ".join(out)
+
+
+def display_names(meta, fallback):
+    """(full name, short name) of a setup: `backend · model (variant) · quant · uncensoring method · author` from the
+    board_names.json fields, and `model (backend if not llama.cpp, variant)` for the chart and tiles; a setup with only a
+    `name` (or none) uses that for both."""
+    if "model" not in meta:
+        return meta.get("name") or fallback, meta.get("short") or meta.get("name") or fallback
+    var = meta.get("variant")
+    model = meta["model"] + (f" ({var})" if var else "")
+    full = " · ".join(x for x in (meta.get("backend"), model, meta.get("quant"), meta.get("method"), meta.get("author")) if x)
+    extra = [x for x in (meta["backend"] if meta.get("backend") not in (None, "llama.cpp") else None, var) if x]
+    return full, meta["model"] + (f" ({', '.join(extra)})" if extra else "")
 
 
 def totals(res, skip):
@@ -153,8 +162,9 @@ def collect(results_dir, baseline, confs_dir=None, engine_titles=None):
             nothink = [a, b] if b else None
         key = setup_key(path.stem)
         meta = names.get(key, {})
+        name, short = display_names(meta, engine_titles.get(path.stem) or pretty(path.stem))
         out.append({
-            "key": key, "label": path.stem, "url": meta.get("url") or urls.get(path.stem.split("_")[0]) or urls.get(key.split("_")[0]), "name": meta.get("name") or engine_titles.get(path.stem) or pretty(path.stem),
+            "key": key, "label": path.stem, "url": meta.get("url") or urls.get(path.stem.split("_")[0]) or urls.get(key.split("_")[0]), "name": name, "short": short,
             "kind": meta.get("kind") or guess_kind(path.stem),
             "detail": meta.get("detail") or derive_details(key),
             "sections": {k: list(v) for k, v in sec.items() if k not in NOT_GRADED | {"estonian"}},
