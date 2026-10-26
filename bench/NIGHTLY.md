@@ -23,6 +23,7 @@ plain text, at most ~600 characters, in `$SUMMARY_LANGUAGE`, no headings or tabl
 
 ## Rules
 
+- **Waiting:** never wait with `pgrep -f` / `pkill -f` on a name that is in your own command line (`while pgrep -f bench/bench.py; do sleep 20; done` matches itself and never ends, and a leftover background command keeps this headless run alive). Wait with `until [ -s <result file> ]` or on the PID, and end every background command you started before your final message.
 - **Time:** the test window is `$WINDOW` local time; production must be serving again by the
   **end of the window**, the owner's everyday assistant uses it from then on. The restore margin
   before the end (10 min by default) belongs to the runner: at that point it kills this run

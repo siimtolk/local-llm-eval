@@ -25,6 +25,7 @@ $EXPERIMENTS set <id> failed '<one-sentence reason>'   # when the variant could 
 
 ## Rules
 
+- **Waiting:** never wait with `pgrep -f` / `pkill -f` on a name that is in your own command line (`while pgrep -f bench/bench.py; do sleep 20; done` matches itself and never ends, and a leftover background command keeps this headless run alive). Wait with `until [ -s <result file> ]` or on the PID, and end every background command you started before your final message.
 - **Time:** the test window is `$WINDOW` local time; production must be serving again by the
   **end of the window**. The restore margin before the end belongs to the runner: then it kills
   this run whatever it is doing, stops every test server, restores production and marks an
