@@ -1,0 +1,1507 @@
+{
+ "label": "vllm-qwen3.8-27b-heretic-ara-nvfp4-mtp_vllm0.32_tp2_nothink",
+ "reps": 3,
+ "temperature": null,
+ "request_extra": {
+  "chat_template_kwargs": {
+   "enable_thinking": false
+  },
+  "reasoning_effort": "none"
+ },
+ "cases": "cases.py",
+ "suite": "2026-10-18",
+ "started": "2026-10-26 20:52:46",
+ "tools": [
+  {
+   "case": "light",
+   "ok": true,
+   "wall": 1.544069528579712,
+   "tokens": 53,
+   "calls": [
+    [
+     "set_light",
+     {
+      "room": "living room",
+      "brightness": 30
+     }
+    ]
+   ]
+  },
+  {
+   "case": "light",
+   "ok": true,
+   "wall": 1.5634291172027588,
+   "tokens": 53,
+   "calls": [
+    [
+     "set_light",
+     {
+      "room": "living room",
+      "brightness": 30
+     }
+    ]
+   ]
+  },
+  {
+   "case": "light",
+   "ok": true,
+   "wall": 1.607804536819458,
+   "tokens": 55,
+   "calls": [
+    [
+     "set_light",
+     {
+      "room": "living room",
+      "brightness": 30
+     }
+    ]
+   ]
+  },
+  {
+   "case": "weather",
+   "ok": true,
+   "wall": 2.162951946258545,
+   "tokens": 88,
+   "calls": [
+    [
+     "get_weather",
+     {
+      "location": "Tartu",
+      "day": "tomorrow"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "weather",
+   "ok": true,
+   "wall": 2.462618350982666,
+   "tokens": 100,
+   "calls": [
+    [
+     "get_weather",
+     {
+      "location": "Tartu",
+      "day": "tomorrow"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "weather",
+   "ok": true,
+   "wall": 2.2470619678497314,
+   "tokens": 87,
+   "calls": [
+    [
+     "get_weather",
+     {
+      "location": "Tartu",
+      "day": "tomorrow"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "shopping",
+   "ok": true,
+   "wall": 1.7282752990722656,
+   "tokens": 61,
+   "calls": [
+    [
+     "add_shopping_items",
+     {
+      "items": [
+       "milk",
+       "eggs"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "case": "shopping",
+   "ok": true,
+   "wall": 1.735722541809082,
+   "tokens": 60,
+   "calls": [
+    [
+     "add_shopping_items",
+     {
+      "items": [
+       "milk",
+       "eggs"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "case": "shopping",
+   "ok": true,
+   "wall": 1.732142686843872,
+   "tokens": 60,
+   "calls": [
+    [
+     "add_shopping_items",
+     {
+      "items": [
+       "milk",
+       "eggs"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "case": "timer_units",
+   "ok": true,
+   "wall": 1.386155605316162,
+   "tokens": 37,
+   "calls": [
+    [
+     "set_timer",
+     {
+      "seconds": 720
+     }
+    ]
+   ]
+  },
+  {
+   "case": "timer_units",
+   "ok": true,
+   "wall": 1.3860135078430176,
+   "tokens": 37,
+   "calls": [
+    [
+     "set_timer",
+     {
+      "seconds": 720
+     }
+    ]
+   ]
+  },
+  {
+   "case": "timer_units",
+   "ok": true,
+   "wall": 1.3899898529052734,
+   "tokens": 37,
+   "calls": [
+    [
+     "set_timer",
+     {
+      "seconds": 720
+     }
+    ]
+   ]
+  },
+  {
+   "case": "no_tool_math",
+   "ok": true,
+   "wall": 0.5774087905883789,
+   "tokens": 4,
+   "calls": []
+  },
+  {
+   "case": "no_tool_math",
+   "ok": false,
+   "wall": 1.4355158805847168,
+   "tokens": 34,
+   "calls": [
+    [
+     "search_web",
+     {
+      "query": "17 times 23"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "no_tool_math",
+   "ok": true,
+   "wall": 0.5761661529541016,
+   "tokens": 4,
+   "calls": []
+  },
+  {
+   "case": "no_tool_chat",
+   "ok": true,
+   "wall": 0.616948127746582,
+   "tokens": 10,
+   "calls": []
+  },
+  {
+   "case": "no_tool_chat",
+   "ok": true,
+   "wall": 0.6158633232116699,
+   "tokens": 12,
+   "calls": []
+  },
+  {
+   "case": "no_tool_chat",
+   "ok": true,
+   "wall": 0.6155366897583008,
+   "tokens": 10,
+   "calls": []
+  },
+  {
+   "case": "two_tools",
+   "ok": true,
+   "wall": 2.2766032218933105,
+   "tokens": 104,
+   "calls": [
+    [
+     "send_message",
+     {
+      "to": "wife",
+      "text": "I'll be 20 minutes late."
+     }
+    ],
+    [
+     "set_timer",
+     {
+      "seconds": 1200
+     }
+    ]
+   ]
+  },
+  {
+   "case": "two_tools",
+   "ok": true,
+   "wall": 2.280796766281128,
+   "tokens": 105,
+   "calls": [
+    [
+     "send_message",
+     {
+      "to": "wife",
+      "text": "I'll be 20 minutes late."
+     }
+    ],
+    [
+     "set_timer",
+     {
+      "seconds": 1200
+     }
+    ]
+   ]
+  },
+  {
+   "case": "two_tools",
+   "ok": true,
+   "wall": 2.4948134422302246,
+   "tokens": 120,
+   "calls": [
+    [
+     "send_message",
+     {
+      "to": "wife",
+      "text": "Hi, I'll be 20 minutes late."
+     }
+    ],
+    [
+     "set_timer",
+     {
+      "seconds": 1200
+     }
+    ]
+   ]
+  },
+  {
+   "case": "media_args",
+   "ok": true,
+   "wall": 1.9668281078338623,
+   "tokens": 87,
+   "calls": [
+    [
+     "play_media",
+     {
+      "title": "The Sopranos",
+      "device": "bedroom TV",
+      "season": 3,
+      "episode": 11
+     }
+    ]
+   ]
+  },
+  {
+   "case": "media_args",
+   "ok": true,
+   "wall": 1.9662954807281494,
+   "tokens": 87,
+   "calls": [
+    [
+     "play_media",
+     {
+      "title": "The Sopranos",
+      "device": "bedroom TV",
+      "season": 3,
+      "episode": 11
+     }
+    ]
+   ]
+  },
+  {
+   "case": "media_args",
+   "ok": true,
+   "wall": 2.0075314044952393,
+   "tokens": 89,
+   "calls": [
+    [
+     "play_media",
+     {
+      "title": "The Sopranos",
+      "device": "bedroom TV",
+      "season": 3,
+      "episode": 11
+     }
+    ]
+   ]
+  },
+  {
+   "case": "calendar",
+   "ok": true,
+   "wall": 1.5201010704040527,
+   "tokens": 43,
+   "calls": [
+    [
+     "get_calendar",
+     {
+      "day": "Friday"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "calendar",
+   "ok": true,
+   "wall": 2.4544858932495117,
+   "tokens": 78,
+   "calls": [
+    [
+     "get_calendar",
+     {
+      "day": "Friday"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "calendar",
+   "ok": true,
+   "wall": 1.6403307914733887,
+   "tokens": 45,
+   "calls": [
+    [
+     "get_calendar",
+     {
+      "day": "Friday"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "cron_weekdays",
+   "ok": true,
+   "wall": 1.8301408290863037,
+   "tokens": 72,
+   "calls": [
+    [
+     "schedule_job",
+     {
+      "job": "backup",
+      "cron": "30 6 * * 1-5"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "cron_weekdays",
+   "ok": true,
+   "wall": 1.828277587890625,
+   "tokens": 72,
+   "calls": [
+    [
+     "schedule_job",
+     {
+      "job": "backup",
+      "cron": "30 6 * * 1-5"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "cron_weekdays",
+   "ok": true,
+   "wall": 1.8271150588989258,
+   "tokens": 72,
+   "calls": [
+    [
+     "schedule_job",
+     {
+      "job": "backup",
+      "cron": "30 6 * * 1-5"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "typos",
+   "ok": false,
+   "wall": 0.7437882423400879,
+   "tokens": 20,
+   "calls": []
+  },
+  {
+   "case": "typos",
+   "ok": false,
+   "wall": 1.1703922748565674,
+   "tokens": 33,
+   "calls": []
+  },
+  {
+   "case": "typos",
+   "ok": false,
+   "wall": 2.1214282512664795,
+   "tokens": 78,
+   "calls": [
+    [
+     "set_light",
+     {
+      "room": "kitchen",
+      "brightness": 50
+     }
+    ]
+   ]
+  },
+  {
+   "case": "three_tools",
+   "ok": true,
+   "wall": 3.0640869140625,
+   "tokens": 168,
+   "calls": [
+    [
+     "add_shopping_items",
+     {
+      "items": [
+       "bread"
+      ]
+     }
+    ],
+    [
+     "set_timer",
+     {
+      "seconds": 300
+     }
+    ],
+    [
+     "get_weather",
+     {
+      "location": "Helsinki",
+      "day": "today"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "three_tools",
+   "ok": true,
+   "wall": 3.151947498321533,
+   "tokens": 161,
+   "calls": [
+    [
+     "add_shopping_items",
+     {
+      "items": [
+       "bread"
+      ]
+     }
+    ],
+    [
+     "set_timer",
+     {
+      "seconds": 300
+     }
+    ],
+    [
+     "get_weather",
+     {
+      "location": "Helsinki",
+      "day": "today"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "three_tools",
+   "ok": true,
+   "wall": 3.0171761512756348,
+   "tokens": 147,
+   "calls": [
+    [
+     "add_shopping_items",
+     {
+      "items": [
+       "bread"
+      ]
+     }
+    ],
+    [
+     "set_timer",
+     {
+      "seconds": 300
+     }
+    ],
+    [
+     "get_weather",
+     {
+      "location": "Helsinki",
+      "day": "today"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "ask_first",
+   "ok": false,
+   "wall": 1.5195634365081787,
+   "tokens": 46,
+   "calls": [
+    [
+     "send_message",
+     {
+      "to": "Mart",
+      "text": "Hi Mart!"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "ask_first",
+   "ok": false,
+   "wall": 1.8145487308502197,
+   "tokens": 59,
+   "calls": [
+    [
+     "send_message",
+     {
+      "to": "Mart",
+      "text": ""
+     }
+    ]
+   ]
+  },
+  {
+   "case": "ask_first",
+   "ok": false,
+   "wall": 1.5186176300048828,
+   "tokens": 46,
+   "calls": [
+    [
+     "send_message",
+     {
+      "to": "Mart",
+      "text": "Hi Mart!"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "no_tool_fact",
+   "ok": false,
+   "wall": 1.3910911083221436,
+   "tokens": 33,
+   "calls": [
+    [
+     "search_web",
+     {
+      "query": "capital of Finland"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "no_tool_fact",
+   "ok": false,
+   "wall": 1.3895909786224365,
+   "tokens": 33,
+   "calls": [
+    [
+     "search_web",
+     {
+      "query": "capital of Finland"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "no_tool_fact",
+   "ok": false,
+   "wall": 1.3896443843841553,
+   "tokens": 33,
+   "calls": [
+    [
+     "search_web",
+     {
+      "query": "capital of Finland"
+     }
+    ]
+   ]
+  }
+ ],
+ "total_seconds": 243.41720747947693,
+ "extract": [
+  {
+   "case": "invoice",
+   "ok": true,
+   "wall": 0.8239574432373047,
+   "tokens": 53,
+   "truncated": false,
+   "answer": "{\n  \"name\": \"Kristjan Tamm\",\n  \"date\": \"2026-11-03\",\n  \"amount\": 149.50,\n  \"currency\": \"EUR\"\n}"
+  },
+  {
+   "case": "invoice",
+   "ok": true,
+   "wall": 0.831279993057251,
+   "tokens": 52,
+   "truncated": false,
+   "answer": "{\n  \"name\": \"Kristjan Tamm\",\n  \"date\": \"2026-11-03\",\n  \"amount\": 149.5,\n  \"currency\": \"EUR\"\n}"
+  },
+  {
+   "case": "invoice",
+   "ok": true,
+   "wall": 0.8359115123748779,
+   "tokens": 53,
+   "truncated": false,
+   "answer": "{\n  \"name\": \"Kristjan Tamm\",\n  \"date\": \"2026-11-03\",\n  \"amount\": 149.50,\n  \"currency\": \"EUR\"\n}"
+  },
+  {
+   "case": "filename",
+   "ok": true,
+   "wall": 0.7110166549682617,
+   "tokens": 45,
+   "truncated": false,
+   "answer": "{\n  \"title\": \"The Martian\",\n  \"year\": 2015,\n  \"resolution\": \"1080p\",\n  \"edition\": \"EXTENDED\"\n}"
+  },
+  {
+   "case": "filename",
+   "ok": true,
+   "wall": 0.6959726810455322,
+   "tokens": 45,
+   "truncated": false,
+   "answer": "{\n  \"title\": \"The Martian\",\n  \"year\": 2015,\n  \"resolution\": \"1080p\",\n  \"edition\": \"EXTENDED\"\n}"
+  },
+  {
+   "case": "filename",
+   "ok": true,
+   "wall": 0.6835212707519531,
+   "tokens": 45,
+   "truncated": false,
+   "answer": "{\n  \"title\": \"The Martian\",\n  \"year\": 2015,\n  \"resolution\": \"1080p\",\n  \"edition\": \"EXTENDED\"\n}"
+  },
+  {
+   "case": "shopping",
+   "ok": true,
+   "wall": 0.8615729808807373,
+   "tokens": 58,
+   "truncated": false,
+   "answer": "{\n  \"items\": [\n    {\"name\": \"milk\", \"qty\": 2},\n    {\"name\": \"bread\", \"qty\": 1},\n    {\"name\": \"eggs\", \"qty\": 10}\n  ]\n}"
+  },
+  {
+   "case": "shopping",
+   "ok": true,
+   "wall": 1.1217889785766602,
+   "tokens": 81,
+   "truncated": false,
+   "answer": "{\n  \"items\": [\n    {\n      \"name\": \"cartons of milk\",\n      \"qty\": 2\n    },\n    {\n      \"name\": \"bread\",\n      \"qty\": 1\n    },\n    {\n      \"name\": \"eggs\",\n      \"qty\": 10\n    }\n  ]\n}"
+  },
+  {
+   "case": "shopping",
+   "ok": true,
+   "wall": 0.8561654090881348,
+   "tokens": 58,
+   "truncated": false,
+   "answer": "{\n  \"items\": [\n    {\"name\": \"milk\", \"qty\": 2},\n    {\"name\": \"bread\", \"qty\": 1},\n    {\"name\": \"eggs\", \"qty\": 10}\n  ]\n}"
+  },
+  {
+   "case": "logline",
+   "ok": true,
+   "wall": 0.7244653701782227,
+   "tokens": 48,
+   "truncated": false,
+   "answer": "{\n  \"level\": \"ERROR\",\n  \"service\": \"gateway\",\n  \"code\": 503,\n  \"retry_after_s\": 30,\n  \"attempt\": 2\n}"
+  },
+  {
+   "case": "logline",
+   "ok": true,
+   "wall": 0.7314276695251465,
+   "tokens": 48,
+   "truncated": false,
+   "answer": "{\n  \"level\": \"ERROR\",\n  \"service\": \"gateway\",\n  \"code\": 503,\n  \"retry_after_s\": 30,\n  \"attempt\": 2\n}"
+  },
+  {
+   "case": "logline",
+   "ok": true,
+   "wall": 0.7341809272766113,
+   "tokens": 48,
+   "truncated": false,
+   "answer": "{\n  \"level\": \"ERROR\",\n  \"service\": \"gateway\",\n  \"code\": 503,\n  \"retry_after_s\": 30,\n  \"attempt\": 2\n}"
+  },
+  {
+   "case": "release_name",
+   "ok": false,
+   "wall": 0.8199825286865234,
+   "tokens": 51,
+   "truncated": false,
+   "answer": "{\n  \"title\": \"Moonstone\",\n  \"year\": 2025,\n  \"resolution\": \"1080p\",\n  \"audio_languages\": [\n    \"en\"\n  ]\n}"
+  },
+  {
+   "case": "release_name",
+   "ok": false,
+   "wall": 0.819779634475708,
+   "tokens": 52,
+   "truncated": false,
+   "answer": "{\n  \"title\": \"Moonstone.Secret\",\n  \"year\": 2025,\n  \"resolution\": \"1080p\",\n  \"audio_languages\": [\n    \"en\"\n  ]\n}"
+  },
+  {
+   "case": "release_name",
+   "ok": false,
+   "wall": 0.8068785667419434,
+   "tokens": 52,
+   "truncated": false,
+   "answer": "{\n  \"title\": \"Moonstone.Secret\",\n  \"year\": 2025,\n  \"resolution\": \"1080p\",\n  \"audio_languages\": [\n    \"en\"\n  ]\n}"
+  }
+ ],
+ "instruct": [
+  {
+   "case": "brief_layout",
+   "ok": true,
+   "wall": 2.1593666076660156,
+   "truncated": false,
+   "tokens": 161,
+   "answer": "**Tech brief**\n\n**Qwen releases a 27B dense model under Apache 2.0**\nThe model features a 262k context window and includes a multi-token prediction head.\nhttps://tinyurl.com/qw38a7 (Hugging Face)\n\n**NVIDIA ships driver 610 with CUDA 13.4**\nThis update adds support for the RTX 60 series and resolves "
+  },
+  {
+   "case": "brief_layout",
+   "ok": true,
+   "wall": 2.492358922958374,
+   "truncated": false,
+   "tokens": 185,
+   "answer": "**Tech brief**\n\n**Qwen releases a 27B dense model under Apache 2.0**\nQwen releases a 27B dense model with 262k context under the Apache 2.0 license.\nhttps://tinyurl.com/qw38a7 (Hugging Face)\n\n**Mistral open-sources a 24B reasoning model**\nMistral open-sources a 24B reasoning model with commercial-us"
+  },
+  {
+   "case": "brief_layout",
+   "ok": true,
+   "wall": 2.072833299636841,
+   "truncated": false,
+   "tokens": 160,
+   "answer": "**Tech brief**\n\n**Qwen releases a 27B dense model under Apache 2.0**\nThe model features a 262k context window and includes an MTP head.\nhttps://tinyurl.com/qw38a7 (Hugging Face)\n\n**NVIDIA ships driver 610 with CUDA 13.4**\nThis update adds support for the RTX 60 series and fixes a memory leak.\nhttps:"
+  },
+  {
+   "case": "brief_silent",
+   "ok": true,
+   "wall": 0.29266858100891113,
+   "truncated": false,
+   "tokens": 5,
+   "answer": "[SILENT]"
+  },
+  {
+   "case": "brief_silent",
+   "ok": true,
+   "wall": 0.28995728492736816,
+   "truncated": false,
+   "tokens": 5,
+   "answer": "[SILENT]"
+  },
+  {
+   "case": "brief_silent",
+   "ok": true,
+   "wall": 0.28676915168762207,
+   "truncated": false,
+   "tokens": 5,
+   "answer": "[SILENT]"
+  },
+  {
+   "case": "exact_reply",
+   "ok": true,
+   "wall": 0.27785325050354004,
+   "truncated": false,
+   "tokens": 2,
+   "answer": "ok"
+  },
+  {
+   "case": "exact_reply",
+   "ok": true,
+   "wall": 0.2886343002319336,
+   "truncated": false,
+   "tokens": 2,
+   "answer": "ok"
+  },
+  {
+   "case": "exact_reply",
+   "ok": true,
+   "wall": 0.3048980236053467,
+   "truncated": false,
+   "tokens": 2,
+   "answer": "ok"
+  },
+  {
+   "case": "word_limit",
+   "ok": true,
+   "wall": 0.6821329593658447,
+   "truncated": false,
+   "tokens": 35,
+   "answer": "From 3 June to 21 June, boats over 12 metres use east pier; fuel open 8:00-20:00."
+  },
+  {
+   "case": "word_limit",
+   "ok": false,
+   "wall": 0.839897871017456,
+   "truncated": false,
+   "tokens": 46,
+   "answer": "The marina closes the guest pier from 3 June to 21 June, boats over 12 metres use the east pier, and fuel is open from 8:00 to 20:00."
+  },
+  {
+   "case": "word_limit",
+   "ok": true,
+   "wall": 0.7401163578033447,
+   "truncated": false,
+   "tokens": 41,
+   "answer": "Marina closes guest pier 3 June to 21 June; boats over 12 metres use east pier; fuel station open 8:00 to 20:00."
+  },
+  {
+   "case": "plain_text",
+   "ok": true,
+   "wall": 1.4495465755462646,
+   "truncated": false,
+   "tokens": 63,
+   "answer": "To keep bread fresh, store it in an airtight container at room temperature to prevent it from drying out or becoming moldy, keep it in the refrigerator only if you plan to consume it over a longer period, or freeze any slices you do not intend to eat immediately so they remain good for weeks."
+  },
+  {
+   "case": "plain_text",
+   "ok": true,
+   "wall": 1.2745635509490967,
+   "truncated": false,
+   "tokens": 69,
+   "answer": "To keep bread fresh, store it in a cool, dry place away from direct sunlight, wrap it tightly in a bread bag or paper bag to prevent moisture loss while allowing some airflow, and if you need longer storage, freeze the bread in airtight plastic containers or freezer bags to preserve its texture and "
+  },
+  {
+   "case": "plain_text",
+   "ok": true,
+   "wall": 1.2353301048278809,
+   "truncated": false,
+   "tokens": 55,
+   "answer": "To keep bread fresh, store it in an airtight container at room temperature to prevent it from drying out, wrap tightly in foil or plastic wrap if you need longer-lasting freshness without refrigeration, or freeze it in portions for extended storage which preserves quality for weeks."
+  },
+  {
+   "case": "acrostic",
+   "ok": true,
+   "wall": 0.49547338485717773,
+   "truncated": false,
+   "tokens": 8,
+   "answer": "See All I Love Oranges Right"
+  },
+  {
+   "case": "acrostic",
+   "ok": true,
+   "wall": 0.4862403869628906,
+   "truncated": false,
+   "tokens": 8,
+   "answer": "Simply Arrive In Lovely Ocean Regions"
+  },
+  {
+   "case": "acrostic",
+   "ok": true,
+   "wall": 0.532235860824585,
+   "truncated": false,
+   "tokens": 10,
+   "answer": "Sparrows always ignite lively orange rockets."
+  },
+  {
+   "case": "three_bullets",
+   "ok": true,
+   "wall": 0.5713942050933838,
+   "truncated": false,
+   "tokens": 15,
+   "answer": "- Preserve fabric integrity\n- Prevent catastrophic failure\n- Maintain optimal performance"
+  },
+  {
+   "case": "three_bullets",
+   "ok": true,
+   "wall": 0.7291691303253174,
+   "truncated": false,
+   "tokens": 24,
+   "answer": "- Prevents excessive strain on rigging\n- Maintains control in high winds\n- Reduces crew injury risk"
+  },
+  {
+   "case": "three_bullets",
+   "ok": true,
+   "wall": 0.7328588962554932,
+   "truncated": false,
+   "tokens": 22,
+   "answer": "- Avoids excessive wind load\n- Prevents dangerous boat heeling\n- Ensures smoother vessel handling"
+  }
+ ],
+ "judge": [
+  {
+   "case": "misspelt",
+   "ok": true,
+   "wall": 0.9471864700317383,
+   "truncated": false,
+   "tokens": 53,
+   "answer": "elling in German, Dutch, and several other languages). It unambiguously identifies the correct planet.\n\nVERDICT: correct"
+  },
+  {
+   "case": "misspelt",
+   "ok": true,
+   "wall": 1.1495823860168457,
+   "truncated": false,
+   "tokens": 60,
+   "answer": "It does not name a different object. According to the instructions, this spelling mistake is accepted.\n\nVERDICT: correct"
+  },
+  {
+   "case": "misspelt",
+   "ok": true,
+   "wall": 1.0304360389709473,
+   "truncated": false,
+   "tokens": 58,
+   "answer": "s the planet Neptune. It does not name any other celestial body. Therefore, it is accepted as correct.\n\nVERDICT: correct"
+  },
+  {
+   "case": "other_case",
+   "ok": true,
+   "wall": 1.0643587112426758,
+   "truncated": false,
+   "tokens": 56,
+   "answer": "hange the meaning, and the name \"bowline\" is spelled correctly and matches the correct answer exactly.\n\nVERDICT: correct"
+  },
+  {
+   "case": "other_case",
+   "ok": true,
+   "wall": 1.4149420261383057,
+   "truncated": false,
+   "tokens": 75,
+   "answer": "correct spelling of \"bowline\". It clearly identifies the correct knot without naming any other object.\n\nVERDICT: correct"
+  },
+  {
+   "case": "other_case",
+   "ok": true,
+   "wall": 0.789837121963501,
+   "truncated": false,
+   "tokens": 37,
+   "answer": "e\" clearly identifies the correct knot, as the article \"a\" does not change the identity of the answer.\n\nVERDICT: correct"
+  },
+  {
+   "case": "wrong_year",
+   "ok": true,
+   "wall": 0.7653262615203857,
+   "truncated": false,
+   "tokens": 43,
+   "answer": "91, which is not the correct year. The Berlin Wall fell in 1989. Therefore, the answer is incorrect.\n\nVERDICT: incorrect"
+  },
+  {
+   "case": "wrong_year",
+   "ok": true,
+   "wall": 0.879425048828125,
+   "truncated": false,
+   "tokens": 50,
+   "answer": "the question asks for a specific year and the player provided a different year, the answer is wrong.\n\nVERDICT: incorrect"
+  },
+  {
+   "case": "wrong_year",
+   "ok": true,
+   "wall": 0.984332799911499,
+   "truncated": false,
+   "tokens": 60,
+   "answer": "9. Since 1991 is a different year and does not correspond to the event in question, it is incorrect.\n\nVERDICT: incorrect"
+  },
+  {
+   "case": "near_miss",
+   "ok": true,
+   "wall": 1.3730652332305908,
+   "truncated": false,
+   "tokens": 73,
+   "answer": "ger than Rhodes). Therefore, the player's answer identifies a different island than the correct one.\n\nVERDICT: incorrect"
+  },
+  {
+   "case": "near_miss",
+   "ok": true,
+   "wall": 1.4867486953735352,
+   "truncated": false,
+   "tokens": 78,
+   "answer": " after Crete, Euboea, and Lesbos. Therefore, \"Rhodes\" is factually incorrect for the question asked.\n\nVERDICT: incorrect"
+  },
+  {
+   "case": "near_miss",
+   "ok": true,
+   "wall": 1.5137407779693604,
+   "truncated": false,
+   "tokens": 86,
+   "answer": "nd in the Mediterranean. Since Rhodes is a distinct island from Crete, it is not the correct answer.\n\nVERDICT: incorrect"
+  },
+  {
+   "case": "surname",
+   "ok": true,
+   "wall": 1.9780759811401367,
+   "truncated": false,
+   "tokens": 115,
+   "answer": "ne else. Therefore, it fits the criteria of a \"partial name that clearly identifies the right answer\".\n\nVERDICT: correct"
+  },
+  {
+   "case": "surname",
+   "ok": true,
+   "wall": 1.4401874542236328,
+   "truncated": false,
+   "tokens": 89,
+   "answer": " Since \"Austen\" clearly refers to Jane Austen in the context of this question, the answer is accepted.\n\nVERDICT: correct"
+  },
+  {
+   "case": "surname",
+   "ok": true,
+   "wall": 1.2561209201812744,
+   "truncated": false,
+   "tokens": 63,
+   "answer": " Therefore, it is acceptable under the rule that partial names identifying the right answer are valid.\n\nVERDICT: correct"
+  },
+  {
+   "case": "symbol",
+   "ok": true,
+   "wall": 1.0791146755218506,
+   "truncated": false,
+   "tokens": 60,
+   "answer": "(from the Latin word *argentum*). Since Ag refers to a different element, it does not identify gold.\n\nVERDICT: incorrect"
+  },
+  {
+   "case": "symbol",
+   "ok": true,
+   "wall": 0.9818861484527588,
+   "truncated": false,
+   "tokens": 57,
+   "answer": "lver (from the Latin word *argentum*). Since Ag represents a different element, the answer is wrong.\n\nVERDICT: incorrect"
+  },
+  {
+   "case": "symbol",
+   "ok": true,
+   "wall": 0.9411633014678955,
+   "truncated": false,
+   "tokens": 54,
+   "answer": "ch is the chemical symbol for silver. Therefore, the player's answer identifies a different element.\n\nVERDICT: incorrect"
+  }
+ ],
+ "estonian": [
+  {
+   "case": "et_light",
+   "ok": false,
+   "wall": 1.850386381149292,
+   "tokens": 53,
+   "calls": []
+  },
+  {
+   "case": "et_light",
+   "ok": true,
+   "wall": 2.470244884490967,
+   "tokens": 84,
+   "calls": [
+    [
+     "set_light",
+     {
+      "room": "elutoa",
+      "brightness": 50
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_light",
+   "ok": false,
+   "wall": 2.4984207153320312,
+   "tokens": 77,
+   "calls": []
+  },
+  {
+   "case": "et_weather",
+   "ok": true,
+   "wall": 4.512521743774414,
+   "tokens": 151,
+   "calls": [
+    [
+     "get_weather",
+     {
+      "location": "Pärnu",
+      "day": "tomorrow"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_weather",
+   "ok": true,
+   "wall": 4.946142196655273,
+   "tokens": 174,
+   "calls": [
+    [
+     "get_weather",
+     {
+      "location": "Pärnu",
+      "day": "tomorrow"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_weather",
+   "ok": true,
+   "wall": 3.8292856216430664,
+   "tokens": 130,
+   "calls": [
+    [
+     "get_weather",
+     {
+      "location": "Pärnu",
+      "day": "tomorrow"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_timer",
+   "ok": false,
+   "wall": 2.4676666259765625,
+   "tokens": 74,
+   "calls": [
+    [
+     "set_timer",
+     {
+      "seconds": 3600
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_timer",
+   "ok": false,
+   "wall": 1.2152113914489746,
+   "tokens": 24,
+   "calls": []
+  },
+  {
+   "case": "et_timer",
+   "ok": false,
+   "wall": 2.627326488494873,
+   "tokens": 80,
+   "calls": [
+    [
+     "get_calendar",
+     {
+      "day": "today"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_shopping",
+   "ok": true,
+   "wall": 2.1285722255706787,
+   "tokens": 80,
+   "calls": [
+    [
+     "add_shopping_items",
+     {
+      "items": [
+       "piim",
+       "2 leiba"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_shopping",
+   "ok": true,
+   "wall": 2.8992154598236084,
+   "tokens": 95,
+   "calls": [
+    [
+     "add_shopping_items",
+     {
+      "items": [
+       "Piim",
+       "Leib (2 tk)"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_shopping",
+   "ok": false,
+   "wall": 1.2570955753326416,
+   "tokens": 32,
+   "calls": []
+  },
+  {
+   "case": "et_math",
+   "ok": true,
+   "wall": 1.5788142681121826,
+   "tokens": 82,
+   "truncated": false,
+   "answer": "sul üle: \\( 3 - 1 = 2 \\) õuna.\nKui ostad 5 juurde, siis lisatakse need olemasolevatele: \\( 2 + 5 = 7 \\) õuna.\n\nANSWER: 7"
+  },
+  {
+   "case": "et_math",
+   "ok": true,
+   "wall": 1.2871429920196533,
+   "tokens": 76,
+   "truncated": false,
+   "answer": "una.\n\n1. Annad 1 ära: $3 - 1 = 2$ õuna.\n2. Ostad 5 juurde: $2 + 5 = 7$ õuna.\n\nSeega sul on nüüd kokku 7 õuna.\n\nANSWER: 7"
+  },
+  {
+   "case": "et_math",
+   "ok": true,
+   "wall": 1.675877332687378,
+   "tokens": 96,
+   "truncated": false,
+   "answer": "a.\n2.  Andsid 1 ära: $3 - 1 = 2$ õuna.\n3.  Ostad 5 juurde: $2 + 5 = 7$ õuna.\n\nKokkuvõttes on sul nüüd 7 õuna.\n\nANSWER: 7"
+  },
+  {
+   "case": "et_read",
+   "ok": true,
+   "wall": 3.0832741260528564,
+   "tokens": 193,
+   "truncated": false,
+   "answer": " minuteid:\n*   2 tundi × 60 minutit/tund = 120 minutit\n*   120 + 30 = 150 minutit\n\nSõit kestis 150 minutit.\n\nANSWER: 150"
+  },
+  {
+   "case": "et_read",
+   "ok": true,
+   "wall": 4.00483775138855,
+   "tokens": 268,
+   "truncated": false,
+   "answer": "aeg minutites: 9 * 60 + 15 = 540 + 15 = 555 minutit\nVahe: 705 - 555 = 150 minutit\n\nSõit kestis 150 minutit.\n\nANSWER: 150"
+  },
+  {
+   "case": "et_read",
+   "ok": true,
+   "wall": 3.985440731048584,
+   "tokens": 257,
+   "truncated": false,
+   "answer": "0 + 45 = 705 minutit.\n9 tundi 15 minutit = (9 * 60) + 15 = 540 + 15 = 555 minutit.\n705 - 555 = 150 minutit.\n\nANSWER: 150"
+  },
+  {
+   "case": "et_illative",
+   "ok": false,
+   "wall": 4.226276397705078,
+   "tokens": 179,
+   "truncated": false,
+   "answer": "nimisõna, kuigi mõnikord esineb ka variatsioonid, kuid standardvorm on \"maja\").\n\nOotan ühe sõnaga vastust.\n\nANSWER: maja"
+  },
+  {
+   "case": "et_illative",
+   "ok": true,
+   "wall": 4.0567309856414795,
+   "tokens": 176,
+   "truncated": false,
+   "answer": "kse sisseütlevat käänet. Sisseütlev kääne vastab küsimusele \"kuhu?\".\nMaja -> Majja (sisse)\n\nVastus: Majja\n\nANSWER: Majja"
+  },
+  {
+   "case": "et_illative",
+   "ok": true,
+   "wall": 0.41745829582214355,
+   "tokens": 10,
+   "truncated": false,
+   "answer": "Majja\nANSWER: Majja"
+  },
+  {
+   "case": "et_genitive",
+   "ok": false,
+   "wall": 14.776383638381958,
+   "tokens": 901,
+   "truncated": false,
+   "answer": "uba\" (gen).\nYes.\n\nOne more check: Is it \"tuba\" or \"tu a\"?\nOrthography: one word.\n\nSo the answer is \"tuba\".\n\nANSWER: tuba"
+  },
+  {
+   "case": "et_genitive",
+   "ok": false,
+   "wall": 3.6978111267089844,
+   "tokens": 194,
+   "truncated": false,
+   "answer": "a\nGen: tuba\nDat: tuba\nAkk: tuba\nIness: tubas\nElat: tubast\nAllat: tubale\n\nSeega, omastav kääne on **tuba**.\n\nANSWER: tuba"
+  },
+  {
+   "case": "et_genitive",
+   "ok": true,
+   "wall": 5.9734110832214355,
+   "tokens": 322,
+   "truncated": false,
+   "answer": "omastav kääne ainsuses?\"\nKui algvorm on \"tuba\", siis omastav kääne on **toa**.\n\nVastus peab olema üks sõna.\n\nANSWER: toa"
+  },
+  {
+   "case": "et_tutar",
+   "ok": false,
+   "wall": 3.6680164337158203,
+   "tokens": 153,
+   "truncated": false,
+   "answer": "llime veelkord. \"Tütar\" -> \"tütare\" (kes on kelle?) Jah, see on standardne.\n\nVastus peab olema üks sõna.\n\nANSWER: tütare"
+  },
+  {
+   "case": "et_tutar",
+   "ok": false,
+   "wall": 11.02542519569397,
+   "tokens": 636,
+   "truncated": false,
+   "answer": "a, mis nominatiiv, või lõpeb -a, -e, -i. Tütarluse puhul on omastav \"tütar\".\n\nVastus peaks olema üks sõna.\nANSWER: tütar"
+  },
+  {
+   "case": "et_tutar",
+   "ok": false,
+   "wall": 1.4562547206878662,
+   "tokens": 68,
+   "truncated": false,
+   "answer": "äne ainsuses 'tütrega'. Vastus peab olema üks sõna ja küsitakse omastava kääne vormi, mis on 'tütrega'.\n\nANSWER: tütrega"
+  },
+  {
+   "case": "et_inimene",
+   "ok": true,
+   "wall": 4.636726140975952,
+   "tokens": 311,
+   "truncated": false,
+   "answer": "e (inimestesse)\n7. Inimestest (inimestest)\n\nSeega sõna „inimene“ omastav kääne mitmuses on „inimeste“.\n\nANSWER: inimeste"
+  },
+  {
+   "case": "et_inimene",
+   "ok": true,
+   "wall": 0.7658329010009766,
+   "tokens": 38,
+   "truncated": false,
+   "answer": "Sõna \"inimene\" mitmus on \"inimesed\" ja selle omastav kääne on \"inimeste\".\n\nANSWER: inimeste"
+  },
+  {
+   "case": "et_inimene",
+   "ok": true,
+   "wall": 1.379979133605957,
+   "tokens": 80,
+   "truncated": false,
+   "answer": "ending \"-te\" is added to the plural stem. Therefore, the plural possessive of \"inimene\" is \"inimeste\".\n\nANSWER: inimeste"
+  },
+  {
+   "case": "et_jalg",
+   "ok": false,
+   "wall": 2.776116132736206,
+   "tokens": 133,
+   "truncated": false,
+   "answer": "osastavat käänet.\nMitu jala? -> jalad\nMitu jala (osastav)? -> jalgadest\n\nSeega vastus on \"jalgadest\".\n\nANSWER: jalgadest"
+  },
+  {
+   "case": "et_jalg",
+   "ok": false,
+   "wall": 1.4808876514434814,
+   "tokens": 68,
+   "truncated": false,
+   "answer": "s \"jalgadest\". See moodustub lisades mitmuse osastav käärelõpule \"-est\" mitmuse põhitarni (\"jalgad\").\n\nANSWER: jalgadest"
+  },
+  {
+   "case": "et_jalg",
+   "ok": false,
+   "wall": 3.047814130783081,
+   "tokens": 146,
+   "truncated": false,
+   "answer": "= „jalgi“.\n\nKontrollime:\n- Ainsuses: jala (osastav)\n- Mitmuses: jalgi (osastav)\n\nSeega vastus on „jalgi“.\n\nANSWER: jalgi"
+  },
+  {
+   "case": "et_extract",
+   "ok": true,
+   "wall": 0.8466296195983887,
+   "tokens": 53,
+   "truncated": false,
+   "answer": "{\n  \"date\": \"2026-11-12\",\n  \"time\": \"18:30\",\n  \"city\": \"Tartu\",\n  \"amount_eur\": 25\n}"
+  },
+  {
+   "case": "et_extract",
+   "ok": true,
+   "wall": 0.8445577621459961,
+   "tokens": 53,
+   "truncated": false,
+   "answer": "{\n  \"date\": \"2026-11-12\",\n  \"time\": \"18:30\",\n  \"city\": \"Tartu\",\n  \"amount_eur\": 25\n}"
+  },
+  {
+   "case": "et_extract",
+   "ok": true,
+   "wall": 0.8242449760437012,
+   "tokens": 53,
+   "truncated": false,
+   "answer": "{\n  \"date\": \"2026-11-12\",\n  \"time\": \"18:30\",\n  \"city\": \"Tartu\",\n  \"amount_eur\": 25\n}"
+  },
+  {
+   "case": "et_reply",
+   "ok": true,
+   "wall": 0.368701696395874,
+   "truncated": false,
+   "tokens": 10,
+   "answer": "Eesti pealinn on Tallinn."
+  },
+  {
+   "case": "et_reply",
+   "ok": true,
+   "wall": 0.3614778518676758,
+   "truncated": false,
+   "tokens": 10,
+   "answer": "Eesti pealinn on Tallinn."
+  },
+  {
+   "case": "et_reply",
+   "ok": true,
+   "wall": 0.3643040657043457,
+   "truncated": false,
+   "tokens": 10,
+   "answer": "Eesti pealinn on Tallinn."
+  },
+  {
+   "case": "et_number_words",
+   "ok": false,
+   "wall": 0.5806291103363037,
+   "truncated": false,
+   "tokens": 15,
+   "answer": "tuhat üheksasada kaheksakümseitsem"
+  },
+  {
+   "case": "et_number_words",
+   "ok": false,
+   "wall": 0.5396630764007568,
+   "truncated": false,
+   "tokens": 16,
+   "answer": "tuhat üheksasada kaheksakümment seitse"
+  },
+  {
+   "case": "et_number_words",
+   "ok": true,
+   "wall": 0.5683412551879883,
+   "truncated": false,
+   "tokens": 17,
+   "answer": "tuhat üheksasada kaheksakümmend seitse"
+  },
+  {
+   "case": "et_summary",
+   "ok": true,
+   "wall": 1.1520507335662842,
+   "truncated": false,
+   "tokens": 45,
+   "answer": "Alibaba vabastas 27 miljardil parametril avatud mudeli, mille kontekst on 262 000 tokenit, Apache 2.0 litsentsi all."
+  },
+  {
+   "case": "et_summary",
+   "ok": true,
+   "wall": 1.0072267055511475,
+   "truncated": false,
+   "tokens": 49,
+   "answer": "Alibaba Qwen meeskond avaldas Apache 2.0 litsentsi all 27 miljardi parameetriga avatud mudeli 262 000 sümbolelise kontekstiga."
+  },
+  {
+   "case": "et_summary",
+   "ok": true,
+   "wall": 0.9054245948791504,
+   "truncated": false,
+   "tokens": 47,
+   "answer": "Alibaba Qwen meeskond avaldas 27 miljardi parameetriga avatud mudeli 262 000 tokeni kontekstiga Apache 2.0 litsentsi all."
+  }
+ ]
+}

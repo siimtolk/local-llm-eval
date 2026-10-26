@@ -5,6 +5,27 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## 2026-10-26 — vllm-qwen3.8-27b-heretic-ara-nvfp4-mtp on vLLM
+
+Question: does lyf/Qwen3.8-27B-Heretic-ARA-NVFP4-MTP-VL (compressed-tensors NVFP4, MTP tensors, vision tower) on vLLM 0.32.0 match production's quality (283/291) while being clearly faster? Measurement only; production was not switched. Run started by hand at 19:47.
+
+Setup: `VLLM_EXTRA_ENV="VLLM_USE_FLASHINFER_SAMPLER=1 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True" serve start vllm-qwen3.8-27b-heretic-ara-nvfp4-mtp --backend vllm --port 8085 -- --enable-chunked-prefill --linear-backend flashinfer_cutlass --tool-call-parser qwen3_xml --speculative-config '{"method": "mtp", "num_speculative_tokens": 3}'` (no `--language-model-only`, so the vision tower is loaded). TP=2, int4_per_token_head KV, max_len 131072, 2 sequences. Served in about 6 min, no OOM step-downs. **KV cache 255,364 tokens, maximum concurrency 1.95x at 131k** (about 2 x 128k). VRAM 13.9 GB per GPU after the suite. Sanity: reasoning split, tool call parsed, 0 reasoning tokens with thinking off.
+
+| | this build (vLLM) | production |
+|---|---|---|
+| graded runs | 277/291 | 283/291 |
+| Estonian | 38/45 | 41/45 |
+| uncensored | 11/11 | 11/11 |
+| thinking off (141 runs) | 90/141 | 113/141 |
+| prose / tool JSON / 30k prompt tok/s | 58.4 / 88.6 / 1174 | 46.0 / 65.5 / 1213 |
+| two at once (total) | 117.2 (61.7 + 60.2) | 69 |
+| follow-up time to first token | 2.9 s | 1.3 s |
+| decode after 30k / 90k | 27.7 / 12.3 tok/s | see depth file |
+
+Per section: tools 42/42, agent 45/48, reason 30/30, extract 15/15, code 22/24, hard 46/48, instruct 21/21, judge 18/18, estonian 38/45 (genitive, illative, jalg, number_words, timer), uncensored 11/11 (2 ran out of tokens). Thinking-off: tools 32/42, extract 12/15, instruct 20/21, judge 18/18, estonian 28/45. MTP acceptance about 79% average draft rate (mean length 3.4).
+
+Verdict: **rejected**. Graded 277 is one below the 278 threshold, Estonian 38 meets its threshold, and the thinking-off mode is clearly worse (90 vs 113). Faster in prose (x1.27) and two at once (x1.7), but decode at depth is slow (12 tok/s after 90k). Weights deleted. The speed gain does not offset the quality loss.
+
 ## 2026-10-26 — experiment 20261026-capy-uncensored-2x128k: capy-flash v0.7.5, wallawalla47 Uncensored NVFP4, 2 x 128k, thinking budget 2048, lease window 0
 
 Hypothesis: the uncensored Qwen3.8-27B NVFP4 on capy-flash, served like production (two 128k lanes, two at once, server-side thinking budget 2048), keeps production's quality including the uncensored section and stays clearly faster. (The same variant on the QUASAR build lost 13 points.)
