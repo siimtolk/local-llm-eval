@@ -41,6 +41,7 @@ from pathlib import Path
 import candidates
 import config
 import experiments
+import nightjobs
 from texts import t
 
 ROOT = config.ROOT
@@ -124,19 +125,21 @@ def slow(rec):
     return rec.get("backend") in SLOW_START or (rec.get("variant") or {}).get("backend") in experiments.SLOW_BACKENDS
 
 
-def ready_queue(data, left, exps=None):
-    """Downloaded candidates and queued config/engine experiments (exps: the experiments store) in test
-    order, as (-priority, age, kind, key) with kind "model" (key: repo) or "experiment" (key: id):
-    higher "priority" first (set by hand to jump the queue; vLLM builds -1), then oldest (a
-    candidate's brief date, an experiment's created); a slow start only while its longer test fits."""
-    fits = lambda rec: not slow(rec) or left >= VLLM_MIN_TEST_S
+def ready_queue(data, left, exps=None, jobs=()):
+    """Downloaded candidates, queued config/engine experiments (exps: the experiments store) and due
+    night jobs (jobs: nightjobs.due) in run order, as (-priority, age, kind, key) with kind "model"
+    (key: repo), "experiment" (key: id) or "job" (key: name): higher "priority" first (set by hand to
+    jump the queue; vLLM builds -1; the jobs have their own, see nightjobs.JOBS), then oldest (a
+    candidate's brief date, an experiment's created); a test only while it fits the time left, a slow
+    start (vLLM/capy) only while its longer test fits."""
+    fits = lambda rec: left >= (VLLM_MIN_TEST_S if slow(rec) else MIN_TEST_S)
     models = [(-int(c.get("priority", 0)), c.get("brief", ""), "model", repo) for repo, c in data["candidates"].items()
               if c["status"] == "downloaded" and candidates.valid_repo(repo)
               and candidates.MODEL_NAME.fullmatch(c.get("model", "")) and fits(c)]
     exp = [(-int(e.get("priority", 0)), e.get("created", ""), "experiment", eid)
            for eid, e in ((exps or {}).get("experiments") or {}).items()
            if e.get("status") == "queued" and e.get("type") in experiments.TYPES and experiments.ID.fullmatch(eid) and fits(e)]
-    return sorted(models + exp)
+    return sorted(models + exp + list(jobs))
 
 
 def machine_block():
@@ -225,13 +228,19 @@ def model_test(now=False, end=None):
         return  # another model test (e.g. an early start) is already running
     if not now:
         hold_for_builds(end)
-    while (left := int((end - config.now()).total_seconds()) - RESTORE_S) >= MIN_TEST_S:
-        with candidates.store(readonly=True) as data, experiments.store(readonly=True) as exps:
-            ready = ready_queue(data, left, exps)
-        if not ready:
-            return
-        if (test_one if ready[0][2] == "model" else test_experiment)(ready[0][-1], end, early=now):
-            return  # a deferred run: the next nightly window, bkg-start, or the wrapper's replay picks them up
+    try:
+        while (left := int((end - config.now()).total_seconds()) - RESTORE_S) >= min(MIN_TEST_S, nightjobs.MIN_S):
+            with candidates.store(readonly=True) as data, experiments.store(readonly=True) as exps:
+                ready = ready_queue(data, left, exps, nightjobs.due(left))
+            if not ready:
+                return
+            kind, key = ready[0][2], ready[0][-1]
+            if kind == "job":
+                nightjobs.run_job(key, end)
+            elif (test_one if kind == "model" else test_experiment)(key, end, early=now):
+                return  # a deferred run: the next nightly window, bkg-start, or the wrapper's replay picks them up
+    finally:
+        nightjobs.finish()
 
 
 def hold_for_builds(end):
@@ -317,12 +326,15 @@ def dry_run(at=None, repo=None):
     with candidates.store(readonly=True) as data, experiments.store(readonly=True) as exps:
         all_c = {r: dict(c) for r, c in data["candidates"].items()}
         all_e = {i: dict(e) for i, e in exps["experiments"].items()}
-        ready = ready_queue(data, left, exps)
+        ready = ready_queue(data, left, exps, nightjobs.due(left))
     downloaded = [r for r, c in all_c.items() if c["status"] == "downloaded"]
     queued = [i for i, e in all_e.items() if e["status"] == "queued"]
     print(f"store {config.path('store')}: {len(all_c)} candidates, {len(downloaded)} downloaded; "
           f"experiments {experiments.store_path()}: {len(all_e)}, {len(queued)} queued; {len(ready)} ready to test now")
     for n, (_, age, kind, r) in enumerate(ready, 1):
+        if kind == "job":
+            print(f"  {n}. job {r} (priority {nightjobs.JOBS[r]['prio']}, needs {nightjobs.JOBS[r]['minutes']} min)")
+            continue
         c = all_c[r] if kind == "model" else all_e[r]
         need = VLLM_MIN_TEST_S if slow(c) else MIN_TEST_S
         what = (f"{c['model']}, {c.get('backend', 'llamacpp')}, brief {age}" if kind == "model" else
@@ -330,7 +342,7 @@ def dry_run(at=None, repo=None):
         print(f"  {n}. {r} ({what}, needs {need // 60} min)")
     if left < MIN_TEST_S:
         print(f"no test fits: {left // 60} min left < {MIN_TEST_S // 60} min")
-    repo = repo or (ready[0][-1] if ready else None)
+    repo = repo or next((r[-1] for r in ready if r[2] != "job"), None)
     if not repo:
         print("queue empty: nothing would run (pass --repo <repo or experiment id> to see its prompt)")
         return
@@ -353,7 +365,8 @@ def queue_text():
         ready = sorted([(-int(c.get("priority", 0)), c.get("brief", ""), c.get("model", repo))
                         for repo, c in data["candidates"].items() if c["status"] == "downloaded"]
                        + [(-int(e.get("priority", 0)), e.get("created", ""), eid)
-                          for eid, e in exps["experiments"].items() if e["status"] == "queued"])
+                          for eid, e in exps["experiments"].items() if e["status"] == "queued"]
+                       + [(p, a, k) for p, a, _, k in nightjobs.due(10 ** 6)])
     return ", ".join(m for *_, m in ready) or t("queue.empty")
 
 
@@ -369,7 +382,7 @@ def bkg_start():
         print(t("bkg.nightly", end=end_text()))
         return
     left = int((deadline() - config.now()).total_seconds()) - RESTORE_S
-    if left < MIN_TEST_S:
+    if left < min(MIN_TEST_S, nightjobs.MIN_S):
         print(t("bkg.no_time", end=end_text()))
         return
     queue = queue_text()

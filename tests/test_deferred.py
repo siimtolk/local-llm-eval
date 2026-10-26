@@ -22,6 +22,7 @@ sys.path.insert(0, str(ROOT / "pipeline"))
 
 import candidates  # noqa: E402
 import config  # noqa: E402
+import nightjobs  # noqa: E402
 import runner  # noqa: E402
 
 REPO = "a/Model-GGUF"
@@ -40,6 +41,10 @@ class Base(unittest.TestCase):
         patch = mock.patch.object(config, "load", return_value=conf)
         patch.start()
         self.addCleanup(patch.stop)
+        for target in ("due", "finish"):  # the night jobs use the real machine: out of these tests
+            p = mock.patch.object(nightjobs, target, return_value=[] if target == "due" else None)
+            p.start()
+            self.addCleanup(p.stop)
         with candidates.store() as data:
             data["candidates"][REPO] = {"name": "Model", "status": "downloaded",
                                         "model": "model-27b", "brief": "2026-10-01"}
