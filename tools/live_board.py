@@ -80,6 +80,30 @@ def speed(res):
     }
 
 
+QUANTS = {"iq4xs": "IQ4_XS", "q4km": "Q4_K_M", "iq3s": "IQ3_S", "iq3s1": "IQ3_S", "iq3xs": "IQ3_XS", "iq2xxs": "IQ2_XXS",
+          "iq2mix": "IQ2 mix", "q6k": "Q6_K"}
+SPEC = {"mtp": "MTP drafting", "dflash": "DFlash drafting", "nospec": "no drafting"}
+
+
+def derive_details(key):
+    """A short serving summary from the setup key (<model>_<quant>_<spec>_<gpus>_<context>), used when board_names.json has no `detail`."""
+    out = []
+    for p in key.split("_")[1:]:
+        if p in QUANTS:
+            out.append(QUANTS[p])
+        elif p in SPEC:
+            out.append(SPEC[p])
+        elif re.fullmatch(r"\d+gpu", p):
+            out.append(p[:-3] + " GPUs")
+        elif re.fullmatch(r"\d+k", p):
+            out.append(p + " context")
+        elif re.fullmatch(r"vllm[\d.]+", p):
+            out.append("vLLM " + p[4:])
+        elif p == "tp2":
+            out.append("2 GPUs")
+    return " · ".join(out)
+
+
 def totals(res, skip):
     sec = {k: v for k, v in sections(res).items() if k not in skip}
     return (sum(p for p, _ in sec.values()), sum(n for _, n in sec.values())) if sec else (0, 0)
@@ -132,6 +156,8 @@ def collect(results_dir, baseline, confs_dir=None, engine_titles=None):
         out.append({
             "key": key, "label": path.stem, "url": meta.get("url") or urls.get(path.stem.split("_")[0]) or urls.get(key.split("_")[0]), "name": meta.get("name") or engine_titles.get(path.stem) or pretty(path.stem),
             "kind": meta.get("kind") or guess_kind(path.stem),
+            "detail": meta.get("detail") or derive_details(key),
+            "sections": {k: list(v) for k, v in sec.items() if k not in NOT_GRADED | {"estonian"}},
             "date": (res.get("started") or "")[:10], "started": res.get("started") or "",
             "production": path.stem == baseline,
             "graded": [ok, tot], "pct": round(100 * ok / tot, 1),
