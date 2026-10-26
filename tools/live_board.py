@@ -192,12 +192,16 @@ def main():
     if problems:
         sys.exit("sanity check failed, nothing written:\n  " + "\n  ".join(problems))
     print("sanity check ok")
-    if old and {k: v for k, v in old.items() if k != "generated"} == data:
+    same = bool(old) and {k: v for k, v in old.items() if k != "generated"} == data
+    dirty = subprocess.run(["git", "-C", str(repo), "status", "--porcelain", "--", "_data/results.json"],
+                           capture_output=True, text=True).stdout.strip()
+    if same and not (args.publish and dirty):  # --publish also commits a file that was written but never committed
         print("unchanged")
         return
-    data = {"generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"), **data}
-    target.write_text(json.dumps(data, indent=1, ensure_ascii=False) + "\n")
-    print(f"wrote {target.name}")
+    if not same:
+        data = {"generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"), **data}
+        target.write_text(json.dumps(data, indent=1, ensure_ascii=False) + "\n")
+        print(f"wrote {target.name}")
     if args.publish:
         git = ["git", "-C", str(repo)]
         subprocess.run(git + ["pull", "--rebase", "--autostash", "-q"], check=True)
