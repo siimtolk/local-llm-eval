@@ -5,6 +5,28 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## 2026-10-26 — qwen3.8-27b-gsq-rco (IQ3_S)
+
+Question: does ISTA-DASLab's GSQ-RCO IQ3_S quant of Qwen3.8-27B (12.1 GB, embedded MTP head, BF16 mmproj) match production's IQ4_XS RVN?
+
+Setup: `models.d/qwen3.8-27b-gsq-rco.conf.sh` derived from production's config: both GPUs, `--ctx-size 262144 --parallel 2`, q4_0 KV, `--spec-type draft-mtp`, Qwen sampling, `--reasoning-effort low`, llama.cpp-next. Labels `qwen3.8-27b-gsq-rco_iq3s_mtp_2gpu_128k` and `_nothink` (the template honoured the switch: answers got much shorter). Suite 2026-10-18, same as baseline.
+
+| metric | candidate | production |
+|---|---|---|
+| graded runs passed (excl. uncensored) | 276/291 | 283/291 |
+| uncensored | 11/11 (2 out of tokens) | 11/11 |
+| Estonian | 38/45 | 41/45 |
+| thinking off (tools, extract, instruct, judge, estonian) | 110/141 | 113/141 |
+| prose / tool-JSON / 30k prompt tok/s | 44.0 / 67.0 / 1098 | 46.0 / 65.5 / 1213 |
+| two at once, total | 61.9 (33.6 + 33.8) | 69 |
+| follow-up time to first token | 1.1 s | 1.3 s |
+| decode after 30k / 90k context | 35.2 / 27.2 tok/s (MTP 45% / 52%) | see depth results |
+| suite wall-clock | 3690 s | n/a |
+
+Per section: tools 40/42, agent 48/48, reason 30/30, extract 15/15, code 20/24 (2 out of tokens), hard 47/48, instruct 20/21, judge 18/18, estonian 38/45, uncensored 11/11. Thinking off: tools 39/42, extract 11/15, instruct 17/21, judge 18/18, estonian 25/45.
+
+Takeaways: 7 fewer graded runs than production (limit is 3), code is the weak spot (eval_expr, next_cron), Estonian is weaker, and thinking-off Estonian drops to 25/45. Speed is no better than production. The smaller quant buys nothing visible. Verdict: rejected, weights deleted. Licence not checked.
+
 ## 2026-10-26 — experiment 20261026-ubatch-1024: Physical batch (ubatch) 1024
 
 Hypothesis: a larger ubatch speeds up prompt reading without changing output.
