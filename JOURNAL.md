@@ -5,6 +5,28 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## 2026-10-26 — experiment 20261026-ubatch-1024: Physical batch (ubatch) 1024
+
+Hypothesis: a larger ubatch speeds up prompt reading without changing output.
+
+Variant: production's config plus `--ubatch-size 1024` (production build, same weights, port 8085).
+`serve` resolves weights as `models/<config name>`, so the variant config sets `MODELS_DIR` to a
+symlink dir under `$SERVING/logs/exp-20261026-ubatch-1024-models/` (no writes to `models/`).
+
+Verdict: **not-beneficial** (1/2 pass-rule conditions met), label `exp-20261026-ubatch-1024`.
+
+| metric | variant | baseline |
+|---|---|---|
+| passed | 294 | 294 |
+| tok_s.prose | 43.8 | 46.0 (ratio 0.95, needed 1.03) |
+| tok_s.parallel | 39.0 | 38.2 |
+| ttft.long_prompt (30k tokens) | 27.3 s | 24.8 s |
+
+Checks: none in the spec. VRAM while serving: 12151 / 15403 / 1528 MiB (three GPUs).
+
+Takeaways: output quality unchanged, but the larger ubatch made prompt reading slower
+(~1100 vs ~1215 tok/s) and prose generation about 5% slower. Keep the default ubatch.
+
 ## 2026-10-25 — rvn-qwen3.8-flash-next-abliterated (IQ3_XS)
 
 Question: can the 125B-total / ~6B-active MoE RVN Qwen3.8-Flash-Next (abliterated, 0bserverx, licence
