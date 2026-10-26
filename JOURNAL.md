@@ -5,6 +5,27 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## 2026-10-26 — experiment 20261026-capy-uncensored-2x128k: capy-flash v0.7.5, wallawalla47 Uncensored NVFP4, 2 x 128k, thinking budget 2048, lease window 0
+
+Hypothesis: the uncensored Qwen3.8-27B NVFP4 on capy-flash, served like production (two 128k lanes, two at once, server-side thinking budget 2048), keeps production's quality including the uncensored section and stays clearly faster. (The same variant on the QUASAR build lost 13 points.)
+
+Variant: engine experiment, backend capy (capy-flash v0.7.5, model `capy-qwen3.8-27b-uncensored-nvfp4`), extra args `--max-context 131072 --kv-capacity 262144 --max-concurrency 2 --default-thinking-budget 2048 --kv-lease-window 0`. **KV 262,144 did not fit** (runtime reservation 5.49 GB needed, 5.21 GB free after weights); retried once with `--kv-capacity 196608`, which fitted (runtime 4.02 GiB, 839 MiB free). No reasoning_effort sent. Labels `exp-20261026-capy-uncensored-2x128k` and `_nothink`. Run started 14:28 by hand, as the owner intended.
+
+Verdict: **not-beneficial** (3 of 4 pass-rule conditions met). passed 282 vs 294 (delta -12, min -6) fails; Estonian 40 vs 41 (-1) passes; prose 77.9 vs 46.0 tok/s (x1.69); two at once 61.5 vs 38.2 per the store (x1.61).
+
+Per section: tools 40/42, agent 48/48, reason 30/30, extract 13/15, code 22/24 (baseline 21), hard 45/48, instruct 21/21, judge 18/18, estonian 40/45 (failed genitive, illative, jalg, timer), **uncensored 5/11** (production 11/11; failed hacking, invest, legal, metadata, sqli, wifi; 6 of the cases ran out of tokens). The whole passed deficit is the uncensored section; I did not check the answers for refusal wording, so how many of the 6 failures are refusals versus running out of tokens is not established (the run log marks 6 as out of tokens). Thinking-off pass: tools 39/42, extract 12/15, instruct 20/21, judge 18/18, estonian 33/45 (production's total 113/141; this one 122/141 is not comparable section for section, only these five sections).
+
+Speed: prose 78.8, tool JSON 103.9 tok/s, prompt 2797 tok/s; two at once 118.7 tok/s total (62.7 + 60.3); decode after 30k 66.2 tok/s, after 90k 61.8 tok/s (MTP 48-49%). Alternating chats: first turn 4.1 s, follow-ups 0.2 s.
+
+Checks:
+- Follow-up time to first token after a ~20k-token prompt: first request 6.6 s, follow-up 0.27 s (production 1.3 s), so better than production. The store's ttft.long_prompt is 10.8 s vs 24.8 s.
+- VRAM while serving: about 15.1 GB and 14.8 GB on the two cards (0.4 GB on the third).
+- Thinking budget on a code request without reasoning_effort: 2072 reasoning tokens of 6893 completion tokens, finish_reason stop. Thinking stayed at the 2048 budget.
+
+'output limit': 20 of 731 "done" lines in the server log ended with output limit (counted before my extra checks; 6 of them at the speed section's 700-token cap, the rest in the benchmark's other max_tokens limits, e.g. the 6 uncensored out-of-tokens cases). The lease workaround `--kv-lease-window 0` was in use, so capy issue #27 was not the cause.
+
+Takeaways: speed is clearly better (1.7x prose, 1.6x two at once, follow-up latency better than production) and everything outside the uncensored section is at or near production (Estonian 40/45). The uncensored fine-tune did not fix the uncensored section: 5/11 against 11/11, mainly through running out of tokens, so the rule fails on it. KV 262144 does not fit with this artifact; 196608 does.
+
 ## 2026-10-26 — experiment 20261026-capy-2x128k-budget: capy-flash v0.7.5, 2 x 128k, concurrency 2, thinking budget 2048, lease window 0
 
 Hypothesis: capy-flash QUASAR NVFP4 served like production (two 128k lanes, two requests at once, thinking capped server-side instead of per-request effort low) keeps production's quality and stays clearly faster.
