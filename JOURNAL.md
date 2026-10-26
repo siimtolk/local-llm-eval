@@ -5,6 +5,29 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## 2026-10-26 — experiment 20261026-kv-k-q5-v-q4: Asymmetric KV cache: K q5_0, V q4_0
+
+Hypothesis: K is about 2x as sensitive to quantization as V, so one more bit on K only (q5_0) should recover long-context and Estonian quality at a small VRAM cost. Variant: `--cache-type-k q4_0` replaced by `--cache-type-k q5_0`, V stays q4_0; production build (b11707), same weights, port 8085, 2 slots x 131072. Run started by hand outside the nightly window.
+
+Verdict line: `20261026-kv-k-q5-v-q4: failed (0/3 pass-rule conditions met) — no value for tok_s.deep_decode`. The store therefore says `failed`, not `not-beneficial`: the result JSON has no `tok_s.deep_decode` metric, so the rule could not be fully evaluated (0/3 conditions met). The verdict was not overridden and the suite was not rerun.
+
+What the suite showed (baseline = production 2026-10-18 suite, 283/291 graded; numbers from the bench log, not from the verdict tool):
+
+| | K q5_0 / V q4_0 | baseline |
+|---|---|---|
+| graded runs (excl. uncensored) | 280/291 | 283/291 |
+| Estonian | 38/45 | 41/45 (per the vLLM write-up) |
+| hard | 47/48 | n/a here |
+| prose / tool JSON / prompt tok/s | 43.5 / 64.5 / 1210 | 46.0 / 65.5 / 1213 |
+| two at once (total) | 67.9 | 69 |
+| decode after 30k / 90k | 36.6 / 25.6 tok/s | not compared |
+
+Failures: code 21/24 (eval_expr, next_cron; 2 out of tokens), hard 1 (orders_total), Estonian 7 (genitive, jalg, number_words, timer, tutar and others). tools, agent, reason, extract, instruct, judge all full marks; uncensored 11/11.
+
+Check: VRAM per GPU while serving (and after the suite) 11.7 GB and 14.3 GB, plus about 1.5 GB on the projector GPU; both 128k slots loaded (n_slots = 2, n_ctx_slot = 131072) and the full suite ran, including 90k-deep decode.
+
+Takeaways: no quality gain visible (280 vs 283, Estonian 38 vs 41, not significant but the wrong direction) and prose speed about 5% lower, so the hypothesis is not supported by this run. Setup notes: weights were reached via a symlink dir under `logs/` with `MODELS_DIR` set in the variant config (as in the ubatch-1024 experiment); a `socat` forwarder owned by someone else already held 172.17.0.1:8085, so the test server was started with `HOST=127.0.0.1`.
+
 ## 2026-10-26 — vllm-qwen3.8-27b-heretic-ara-nvfp4-mtp on vLLM
 
 Question: does lyf/Qwen3.8-27B-Heretic-ARA-NVFP4-MTP-VL (compressed-tensors NVFP4, MTP tensors, vision tower) on vLLM 0.32.0 match production's quality (283/291) while being clearly faster? Measurement only; production was not switched. Run started by hand at 19:47.
