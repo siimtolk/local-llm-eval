@@ -234,7 +234,7 @@ def bug_hunt(ctx):
                              "reviewed": reviewed})
     findings.sort(key=lambda f: {"high": 0, "medium": 1}.get(str(f.get("severity")), 2))
     body = "\n".join(f"- **{f.get('severity', '?')}** `{f['repo']}/{f['file']}:{f.get('line')}`: {f['problem']}\n  - evidence: `{str(f.get('evidence'))[:200]}`\n"
-                     f"  - verified: {f['why']}\n  - fix: {f.get('fix', '')}\n  - ticket text: `/idee Fix in {f['repo']} {f['file']}: {f['problem']}`"
+                     f"  - verified: {f['why']}\n  - fix: {f.get('fix', '')}\n  - ticket text: `/idea Fix in {f['repo']} {f['file']}: {f['problem']}`"
                      for f in findings) or "No confirmed findings."
     path = raw_report("bug-hunt", "Bug hunt", f"Reviewed {len(work)} units (recent diffs + rotating files; {len(sweep)} files not yet reviewed at start).\n\n{body}"
                       + ("\n\nNotes: " + "; ".join(notes) if notes else ""))
@@ -554,9 +554,9 @@ def idea_mining(ctx):
         return result("12 raw ideas (not critiqued: out of time)", path, True)
     top = llm("Critique these ideas for a solo founder with ~10 free hours a week. Score each 1-5 on impact, effort-fit, and fit with existing "
               "assets. Drop duplicates and anything vague. Output the best 5 ranked, each as: ### title / why / first step / risks, then one "
-              "line `/idee <one-sentence text>` ready to send to the ticket pipeline. English.\n\n" + gen, max_tokens=4000)
+              "line `/idea <one-sentence text>` ready to send to the ticket pipeline. English.\n\n" + gen, max_tokens=4000)
     path = raw_report("idea-mining", "Idea mining", "## Top 5\n\n" + top + "\n\n## All 12 candidates\n\n" + gen)
-    return result("5 ranked ideas ready as /idee lines", path, True)
+    return result("5 ranked ideas ready as /idea lines", path, True)
 
 
 # ---- 9 trend-synth --------------------------------------------------------------------------------
