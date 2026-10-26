@@ -165,6 +165,9 @@ def collect(results_dir, baseline, confs_dir=None, engine_titles=None):
         name, short = display_names(meta, engine_titles.get(path.stem) or pretty(path.stem))
         out.append({
             "key": key, "label": path.stem, "url": meta.get("url") or urls.get(path.stem.split("_")[0]) or urls.get(key.split("_")[0]), "name": name, "short": short,
+            "title": meta["model"] + (f" ({meta['variant']})" if meta.get("variant") else "") if "model" in meta else short,
+            "backend": meta.get("backend") or ("vLLM" if guess_kind(path.stem) == "vllm" else "capy-flash" if guess_kind(path.stem) == "capy" else "llama.cpp"),
+            "traits": " · ".join(x for x in (meta.get("quant"), meta.get("method"), meta.get("author")) if x),
             "kind": meta.get("kind") or guess_kind(path.stem),
             "detail": meta.get("detail") or derive_details(key),
             "sections": {k: list(v) for k, v in sec.items() if k not in NOT_GRADED | {"estonian"}},
