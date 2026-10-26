@@ -211,6 +211,8 @@ def add(repo, backend="llamacpp", priority=1, now_=False):
     if why:
         return False, t("add.unfit", repo=repo, why=why)
     risk = safe_assess(repo)
+    if backend == "vllm" and risk.get("level") == "wontload":  # no GGUF header to read: not a reason for a safetensors build
+        risk["level"] = "low"
     if risk.get("level") == "wontload":
         return False, t("add.wontload", repo=repo, why="; ".join(risk.get("reasons", []))[:300])
     with store() as data:
