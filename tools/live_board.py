@@ -83,8 +83,19 @@ def totals(res, skip):
     return (sum(p for p, _ in sec.values()), sum(n for _, n in sec.values())) if sec else (0, 0)
 
 
-def collect(results_dir, baseline):
+def weights_urls(confs_dir):
+    """{serving config name: Hugging Face page} from HF_REPO in models.d/<name>.conf.sh."""
+    out = {}
+    for conf in Path(confs_dir).glob("*.conf.sh") if confs_dir else []:
+        m = re.search(r'^HF_REPO="?([\w.-]+/[\w.-]+)"?', conf.read_text(), re.M)
+        if m:
+            out[conf.name.removesuffix(".conf.sh")] = "https://huggingface.co/" + m.group(1)
+    return out
+
+
+def collect(results_dir, baseline, confs_dir=None):
     names = json.loads(NAMES.read_text()) if NAMES.exists() else {}
+    urls = weights_urls(confs_dir)
     runs = []
     for path in sorted(results_dir.glob("*.json")):
         if path.name.startswith(("_", "exp-")) or path.stem.endswith("_nothink"):
@@ -114,7 +125,7 @@ def collect(results_dir, baseline):
         key = setup_key(path.stem)
         meta = names.get(key, {})
         out.append({
-            "key": key, "label": path.stem, "name": meta.get("name") or pretty(path.stem),
+            "key": key, "label": path.stem, "url": meta.get("url") or urls.get(path.stem.split("_")[0]) or urls.get(key.split("_")[0]), "name": meta.get("name") or pretty(path.stem),
             "kind": meta.get("kind") or guess_kind(path.stem),
             "date": (res.get("started") or "")[:10], "started": res.get("started") or "",
             "production": path.stem == baseline,
@@ -161,7 +172,8 @@ def check(data, old):
 
 def build():
     import config
-    data = collect(config.path("results"), config.get("production", "baseline"))
+    data = collect(config.path("results"), config.get("production", "baseline"),
+                   config.path("model_configs", config.serving()))
     if data is None:
         sys.exit("no results")
     return data
