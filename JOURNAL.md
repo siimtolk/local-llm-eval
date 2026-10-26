@@ -70,6 +70,16 @@ Checks:
 
 Takeaways: speed is clearly better (1.7x prose, 1.6x two at once, follow-up latency better than production) and everything outside the uncensored section is at or near production (Estonian 40/45). The uncensored fine-tune did not fix the uncensored section: 5/11 against 11/11, mainly through running out of tokens, so the rule fails on it. KV 262144 does not fit with this artifact; 196608 does.
 
+## 2026-10-26 — experiment 20261026-capy-heretic-ara-2x128k: capy-flash v0.7.5, Heretic ARA NVFP4, 2 x 128k, thinking budget 2048
+
+Hypothesis: the Heretic ARA Qwen3.8-27B NVFP4 (converted locally) served like production keeps its quality including the uncensored section and stays clearly faster.
+
+Variant: backend capy, model `capy-qwen3.8-27b-heretic-ara-nvfp4`, extra args `--max-context 131072 --kv-capacity 262144 --max-concurrency 2 --default-thinking-budget 2048 --kv-lease-window 0`.
+
+Result: **failed**, not measured. Started 22:33 by hand; the server died within 2 s of startup: `startup failed | planning runtime` / `FATAL server failed during startup | tokenizer.json pre_tokenizer.Split is not supported by the Qwen tokenizer`. The artifact's tokenizer.json (from the lyf repo) uses a Split pre-tokenizer capy-flash v0.7.5 does not accept; no documented launcher flag changes that. No bench run, no VRAM or 'output limit' figures. Production was restored (health ok, chat answered).
+
+Takeaway: this conversion needs a capy-flash release (or a tokenizer.json) that supports that pre_tokenizer; worth reporting to the capy-flash author.
+
 ## 2026-10-26 — experiment 20261026-capy-2x128k-budget: capy-flash v0.7.5, 2 x 128k, concurrency 2, thinking budget 2048, lease window 0
 
 Hypothesis: capy-flash QUASAR NVFP4 served like production (two 128k lanes, two requests at once, thinking capped server-side instead of per-request effort low) keeps production's quality and stays clearly faster.
