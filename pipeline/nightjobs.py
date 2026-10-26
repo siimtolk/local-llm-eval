@@ -321,6 +321,7 @@ def timer_calendars(text):
     for unit in sorted(set(re.findall(r"`([\w@.-]+\.timer)`", text))):
         cal = sh(["systemctl", "--user", "show", unit, "-p", "TimersCalendar", "--value"]).strip() or \
               sh(["systemctl", "show", unit, "-p", "TimersCalendar", "--value"]).strip()
+        cal = re.sub(r"\s*;\s*next_elapse=[^}]*", " ", cal)  # keep OnCalendar, drop next_elapse
         out.append(f"{unit}: {cal or 'unknown'}")
     return "\n".join(out)
 
