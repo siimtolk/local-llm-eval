@@ -6,7 +6,9 @@
     tools/live_board.py --publish       --write, then commit and push the blog repo if the data changed
 
 One point per model setup: full runs of the newest suite only (a run with fewer graded cases than
-the biggest one, a speed-only run, `_nothink` passes and `exp-` experiments are not points), and of
+the biggest one, a speed-only run, `_nothink` passes and `exp-` experiments are not points; the exception
+is a full run of an `engine` experiment, another backend serving a model, which is a point named by the
+experiment's title), and of
 several runs of one setup (reruns `_r2`, other llama.cpp builds `_b11707`, `-2` re-tests) the latest
 stands for it; the earlier ones stay in the data with `latest: false`. Quality is graded runs
 passed with Estonian and the uncensored set left out, as in the articles.
@@ -93,12 +95,15 @@ def weights_urls(confs_dir):
     return out
 
 
-def collect(results_dir, baseline, confs_dir=None):
+def collect(results_dir, baseline, confs_dir=None, engine_titles=None):
+    """engine_titles: {result label: title} of the engine experiments, the only `exp-` results shown."""
+    engine_titles = engine_titles or {}
     names = json.loads(NAMES.read_text()) if NAMES.exists() else {}
     urls = weights_urls(confs_dir)
     runs = []
     for path in sorted(results_dir.glob("*.json")):
-        if path.name.startswith(("_", "exp-")) or path.stem.endswith("_nothink"):
+        if path.name.startswith("_") or path.stem.endswith("_nothink") \
+                or (path.name.startswith("exp-") and path.stem not in engine_titles):
             continue
         res = json.loads(path.read_text())
         if not isinstance(res, dict) or not res.get("suite"):
@@ -125,7 +130,7 @@ def collect(results_dir, baseline, confs_dir=None):
         key = setup_key(path.stem)
         meta = names.get(key, {})
         out.append({
-            "key": key, "label": path.stem, "url": meta.get("url") or urls.get(path.stem.split("_")[0]) or urls.get(key.split("_")[0]), "name": meta.get("name") or pretty(path.stem),
+            "key": key, "label": path.stem, "url": meta.get("url") or urls.get(path.stem.split("_")[0]) or urls.get(key.split("_")[0]), "name": meta.get("name") or engine_titles.get(path.stem) or pretty(path.stem),
             "kind": meta.get("kind") or guess_kind(path.stem),
             "date": (res.get("started") or "")[:10], "started": res.get("started") or "",
             "production": path.stem == baseline,
@@ -170,10 +175,20 @@ def check(data, old):
     return bad
 
 
+def engine_experiment_titles():
+    """{result label: title} of the engine experiments (<state>/experiments.json), whose full runs the board shows."""
+    import experiments
+    try:
+        data = json.loads(experiments.store_path().read_text())["experiments"]
+    except (OSError, ValueError, KeyError):
+        return {}
+    return {f"exp-{eid}": e["title"] for eid, e in data.items() if e.get("type") == "engine" and e.get("title")}
+
+
 def build():
     import config
     data = collect(config.path("results"), config.get("production", "baseline"),
-                   config.path("model_configs", config.serving()))
+                   config.path("model_configs", config.serving()), engine_experiment_titles())
     if data is None:
         sys.exit("no results")
     return data

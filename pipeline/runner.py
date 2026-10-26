@@ -70,23 +70,44 @@ def agent_cmd(prompt, system, cwd, max_turns):
     return cmd
 
 
-def agent(prompt, system, cwd, timeout, max_turns):
+LINGER_S = 600  # a recorded result, then this long for the write-up, commit and push
+
+
+def kill_group(proc):
+    os.killpg(proc.pid, signal.SIGTERM)
+    try:
+        proc.communicate(timeout=30)
+    except subprocess.TimeoutExpired:
+        os.killpg(proc.pid, signal.SIGKILL)
+        proc.communicate()
+
+
+def agent(prompt, system, cwd, timeout, max_turns, done=None):
     """Run the agent in its own process group; on timeout the whole group is killed.
+    done: a function that is true once the run has recorded its result in the store. An agent that is
+    still alive LINGER_S after that is stopped (usually a background wait loop it left behind, e.g. a
+    `pgrep -f` that matches its own command line, which keeps `claude -p` from exiting): the run
+    counts as finished and the error text says so.
     Returns (parsed JSON output or None, error text, deferred) — deferred is True when the process
     exited with [agent] deferred_exit, a wrapper around the agent command that deferred the run
     (e.g. to wait out a provider usage limit)."""
     proc = subprocess.Popen(agent_cmd(prompt, system, cwd, max_turns), cwd=cwd, stdin=subprocess.DEVNULL,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
-    try:
-        out, err = proc.communicate(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        os.killpg(proc.pid, signal.SIGTERM)
+    start, recorded = time.monotonic(), None
+    while True:
         try:
-            proc.communicate(timeout=30)
+            out, err = proc.communicate(timeout=30)
+            break
         except subprocess.TimeoutExpired:
-            os.killpg(proc.pid, signal.SIGKILL)
-            proc.communicate()
-        return None, f"stopped after {timeout // 60} min", False
+            now = time.monotonic()
+            if now - start >= timeout:
+                kill_group(proc)
+                return None, f"stopped after {timeout // 60} min", False
+            if done and done():
+                recorded = recorded or now
+                if now - recorded >= LINGER_S:
+                    kill_group(proc)
+                    return None, f"result recorded; agent still running {LINGER_S // 60} min later and was stopped", False
     deferred = proc.returncode == config.get("agent", "deferred_exit", 75)
     try:
         return json.loads(out), "", deferred
@@ -265,6 +286,16 @@ def hold_for_builds(end):
         log("model-test", "build first", f"hold ended at {config.now():%H:%M}; testing what fits before {end:%H:%M}")
 
 
+def candidate_status(repo):
+    with candidates.store(readonly=True) as data:
+        return data["candidates"][repo]["status"]
+
+
+def experiment_status(eid):
+    with experiments.store(readonly=True) as data:
+        return data["experiments"][eid]["status"]
+
+
 def test_one(repo, end, early=False):
     """One candidate: the agent follows NIGHTLY.md (or NIGHTLY_VLLM.md). An unfinished run is
     marked failed, but a run the wrapper deferred (exit [agent] deferred_exit) goes back to
@@ -274,7 +305,8 @@ def test_one(repo, end, early=False):
         c.update(status="testing", updated=candidates.now(), reported=False)
         c = dict(c)
     seconds = int((end - config.now()).total_seconds()) - RESTORE_S
-    out, err, deferred = agent(prompt_for(repo, c, end, early), SYSTEM, agent_cwd(), seconds, config.get("agent", "max_turns", 400))
+    out, err, deferred = agent(prompt_for(repo, c, end, early), SYSTEM, agent_cwd(), seconds, config.get("agent", "max_turns", 400),
+                               done=lambda: candidate_status(repo) != "testing")
     result = err if out is None else (out.get("result") or "").strip()
     log("model-test", f"model test: {repo}", result)
     subprocess.run(stop_cmd(c), capture_output=True)
@@ -299,7 +331,8 @@ def test_experiment(eid, end, early=False):
         e.update(status="running", updated=candidates.now())
         e = dict(e)
     seconds = int((end - config.now()).total_seconds()) - RESTORE_S
-    out, err, _ = agent(prompt_for(eid, e, end, early), SYSTEM, agent_cwd(), seconds, config.get("agent", "max_turns", 400))
+    out, err, _ = agent(prompt_for(eid, e, end, early), SYSTEM, agent_cwd(), seconds, config.get("agent", "max_turns", 400),
+                        done=lambda: experiment_status(eid) != "running")
     result = err if out is None else (out.get("result") or "").strip()
     log("experiment", f"experiment: {eid}", result)
     subprocess.run(stop_cmd(e), capture_output=True)
