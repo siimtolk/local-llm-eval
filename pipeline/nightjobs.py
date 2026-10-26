@@ -600,16 +600,18 @@ JOBS = {
 MIN_S = min(j["minutes"] for j in JOBS.values()) * 60
 
 
-def due(left_s, state=None):
-    """[(-priority, last_try, 'job', name)] of jobs that are due and fit left_s seconds (priority + 1 per overdue day)."""
+def due(left_s, state=None, day=None):
+    """[(-priority, last_try, 'job', name)] of jobs that are due and fit left_s seconds (priority + 1 per overdue day).
+    day (a date): the night to plan for instead of today (the schedule preview)."""
     state = state if state is not None else load_state()
+    day = day or config.now().date()
     out = []
     for name, j in JOBS.items():
         s = state.get(name, {})
         last = s.get("tried", "")
-        if last == today() or left_s < j["minutes"] * 60:
+        if last == f"{day}" or left_s < j["minutes"] * 60:
             continue
-        overdue = (config.now().date() - datetime.strptime(last, "%Y-%m-%d").date()).days - j["every"] if last else 0
+        overdue = (day - datetime.strptime(last, "%Y-%m-%d").date()).days - j["every"] if last else 0
         if overdue < 0:
             continue
         out.append((-(j["prio"] + overdue), last, "job", name))
@@ -621,6 +623,7 @@ def run_job(name, end):
     j = JOBS[name]
     state = load_state()
     state.setdefault(name, {})["tried"] = today()
+    state[name]["started"] = f"{config.now():%H:%M}"
     save_state(state)
     subprocess.run(config.serving_cmd("production", "ensure"), cwd=config.serving(), capture_output=True)
     t0 = time.time()

@@ -22,6 +22,8 @@
   runner.py bkg-start   hand the GPUs to the model test now, at any time of day (on top of the nightly
                         window): starts the transient unit [agent] bkg_unit (runner.py bkg-run: the
                         model test until the queue is empty or the next deadline) and prints a reply.
+  runner.py schedule    prints the background tasks in the order they will run (next nightly slot, or now while
+                        a run is on) with estimated start times; starts nothing, changes nothing.
   runner.py bkg-stop    stop that unit and its test server, put an interrupted candidate back in the
                         queue (an experiment back to queued), restore production and print a reply.
 
@@ -403,6 +405,69 @@ def queue_text():
     return ", ".join(m for *_, m in ready) or t("queue.empty")
 
 
+def schedule_text():
+    """The background tasks as numbered lists in run order. While a run is on (or we are inside the window):
+    what runs now (with its start time) and what is still queued for it, then the next nightly slot. Else
+    just the next slot. Durations are estimates from each task's minimum slot; real runs may differ."""
+    now = config.now()
+    on = nightly_active() or systemctl("is-active", "-q", BKG_UNIT).returncode == 0
+    s = config.hhmm("window_start")
+    slot = now.replace(hour=s.hour, minute=s.minute, second=0, microsecond=0)
+    if slot <= now:
+        slot += timedelta(days=1)
+    now_on = on or deadline(now) - now <= timedelta(hours=config.window_hours(), minutes=5)
+
+    def since(stamp):  # the store's UTC stamp -> local "started HH:MM"
+        try:
+            return f", started {datetime.fromisoformat(stamp).astimezone(config.tz()):%H:%M}"
+        except (TypeError, ValueError):
+            return ""
+
+    def plan(data, exps, start, taken):
+        """(rows, taken) of what would run from start to that night's deadline, skipping the keys in taken."""
+        names = {r: c.get("model", r) for r, c in data["candidates"].items()}
+        recs = {**data["candidates"], **exps["experiments"]}
+        left, rows, taken = int((deadline(start) - start).total_seconds()) - RESTORE_S, [], set(taken)
+        while left >= min(MIN_TEST_S, nightjobs.MIN_S):
+            ready = [r for r in ready_queue(data, left, exps, nightjobs.due(left, day=start.date())) if r[-1] not in taken]
+            if not ready:
+                break
+            _, _, kind, key = ready[0]
+            taken.add(key)
+            if kind == "job":
+                need, what = nightjobs.JOBS[key]["minutes"] * 60, f"job: {nightjobs.JOBS[key]['title']}"
+            else:
+                need = VLLM_MIN_TEST_S if slow(recs[key]) else MIN_TEST_S
+                what = f"{'model' if kind == 'model' else 'experiment'}: {names.get(key, key)}"
+            rows.append(f"{what} (~{need // 60} min)")
+            left -= need
+        return rows, taken
+
+    def section(title, rows):
+        return "\n".join([title] + ([f"{n}. {r}" for n, r in enumerate(rows, 1)] or ["Nothing queued."]))
+
+    state = nightjobs.load_state()
+    out, taken = [], set()
+    with candidates.store(readonly=True) as data, experiments.store(readonly=True) as exps:
+        if now_on:
+            rows = []
+            for r, c in data["candidates"].items():
+                if c["status"] == "testing":
+                    rows.append(f"model: {c.get('model', r)} (~{(VLLM_MIN_TEST_S if slow(c) else MIN_TEST_S) // 60} min, running{since(c.get('updated'))})")
+            for e, x in exps["experiments"].items():
+                if x["status"] == "running":
+                    rows.append(f"experiment: {e} (~{(VLLM_MIN_TEST_S if slow(x) else MIN_TEST_S) // 60} min, running{since(x.get('updated'))})")
+            for n, j in nightjobs.JOBS.items():
+                st = state.get(n, {})
+                if st.get("tried") == nightjobs.today() and not str(st.get("finished", "")).startswith(nightjobs.today()):
+                    rows.append(f"job: {j['title']} (~{j['minutes']} min, running" + (f", started {st['started']}" if st.get("started") else "") + ")")
+            more, taken = plan(data, exps, now, taken)
+            out.append(section(f"Background tasks, {'running now' if on else 'night window open'} (until {deadline(now):%H:%M})", rows + more))
+        rows, _ = plan(data, exps, slot, taken)
+        out.append(section(f"Next nightly slot {slot:%a %H:%M}-{deadline(slot):%H:%M} (manual start: /runbkgtasks)", rows))
+    return "\n\n".join(out)
+
+
 def nightly_active():
     return any(systemctl("is-active", "-q", u).returncode == 0 for u in NIGHTLY_UNITS)
 
@@ -471,6 +536,8 @@ def main():
         if set(opts) - {"--at", "--repo"} or len(args[2:]) % 2:
             sys.exit(__doc__)
         dry_run(opts.get("--at"), opts.get("--repo"))
+    elif args == ["schedule"]:
+        print(schedule_text())
     elif args == ["bkg-start"]:
         bkg_start()
     elif args == ["bkg-run"]:
