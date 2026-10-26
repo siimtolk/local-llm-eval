@@ -128,11 +128,31 @@ def weights_urls(confs_dir):
     return out
 
 
+def depth_runs(results_dir):
+    """{setup key: deep_decode of its latest run that has one}: a setup's long-context decode is sometimes measured on its own
+    (<label>_depth.json, like production's), not in the full run."""
+    best = {}
+    for path in sorted(results_dir.glob("*.json")):
+        if path.name.startswith("_") or path.stem.endswith("_nothink"):
+            continue
+        try:
+            res = json.loads(path.read_text())
+        except ValueError:
+            continue
+        deep = (res.get("speed") or {}).get("deep_decode") if isinstance(res, dict) else None
+        if isinstance(deep, dict) and any(isinstance(v, dict) and v.get("tok_s") for v in deep.values()):
+            key, started = setup_key(path.stem), res.get("started") or ""
+            if key not in best or started > best[key][0]:
+                best[key] = (started, deep)
+    return {k: v[1] for k, v in best.items()}
+
+
 def collect(results_dir, baseline, confs_dir=None, engine_titles=None):
     """engine_titles: {result label: title} of the engine experiments, the only `exp-` results shown."""
     engine_titles = engine_titles or {}
     names = json.loads(NAMES.read_text()) if NAMES.exists() else {}
     urls = weights_urls(confs_dir)
+    depth = depth_runs(results_dir)
     runs = []
     for path in sorted(results_dir.glob("*.json")):
         if path.name.startswith("_") or path.stem.endswith("_nothink") \
@@ -151,6 +171,8 @@ def collect(results_dir, baseline, confs_dir=None, engine_titles=None):
     out, skipped = [], len(runs) - len(in_suite)
     for path, res, n in in_suite:
         sp = speed(res)
+        if sp["decode_30k"] is None and sp["decode_90k"] is None and setup_key(path.stem) in depth:
+            sp.update({k: v for k, v in speed({"speed": {"deep_decode": depth[setup_key(path.stem)]}}).items() if k.startswith("decode_")})
         if n < full_n or sp["prose"] is None:
             continue
         sec = sections(res)
