@@ -5,6 +5,27 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## 2026-10-26 — experiment 20261026-capy-2x128k-budget: capy-flash v0.7.5, 2 x 128k, concurrency 2, thinking budget 2048, lease window 0
+
+Hypothesis: capy-flash QUASAR NVFP4 served like production (two 128k lanes, two requests at once, thinking capped server-side instead of per-request effort low) keeps production's quality and stays clearly faster.
+
+Variant: engine experiment, backend capy (capy-flash v0.7.5, model `capy-qwen3.8-27b-quasar-nvfp4`), extra args `--max-context 131072 --kv-capacity 262144 --max-concurrency 2 --default-thinking-budget 2048 --kv-lease-window 0`. KV 262,144 tokens (int8) fitted on the first try (no fallback to 196608). No reasoning_effort sent. Run started 12:09 by hand outside the window, as the owner intended. Labels `exp-20261026-capy-2x128k-budget` and `_nothink`.
+
+Verdict: **not-beneficial** (3 of 4 pass-rule conditions met). passed 281 vs 294 (delta -13, min -6) fails; Estonian 38 vs 41 (-3, at the limit, passes); prose 74.7 vs 46.0 tok/s (x1.62); two at once 81.4 vs 38.2 tok/s per the store (x2.13).
+
+The whole passed deficit comes from the uncensored section: 4/11 vs 11/11 (7 lost; this is the stock Qwen3.8, not an uncensored fine-tune, so refusals are expected; 5 of those cases also ran out of tokens). Outside uncensored: tools 41/42, agent 47/48, reason 30/30, extract 13/15, code 22/24 (baseline 21), hard 48/48, instruct 20/21, judge 18/18, estonian 38/45 (failed genitive, illative, jalg, number_words). Thinking-off pass: tools 38/42, extract 12/15, instruct 19/21, judge 18/18, estonian 36/45 (production's thinking-off total is 113/141).
+
+Speed: prose 75.4, tool JSON 118.6 tok/s, prompt 2843 tok/s; two at once 143.8 tok/s total (73.3 + 89.6); decode after 30k 80.7 tok/s, after 90k 74.0 tok/s (MTP 54%).
+
+Checks:
+- Follow-up time to first token: alternating chats 4.0 s for the first turn, 2.2 s for follow-ups (production 1.3 s), so slower than production here. The store's ttft.long_prompt is 10.6 s vs 24.8 s.
+- VRAM while serving: about 14.3 GB and 14.0 GB on the two cards (0.5 GB on the third GPU, Vision/other).
+- Thinking budget on a code request without reasoning_effort: 2072 reasoning tokens of 5770 completion tokens, finish_reason stop. Thinking stayed at the 2048 budget.
+
+'output limit': 16 of 726 "done" lines in the server log ended with output limit (11 in the speed section at 700 tokens/cap, 5 in the uncensored section, matching its 5 out-of-tokens cases). The lease workaround `--kv-lease-window 0` was in use, so capy issue #27 did not cut answers early here; the limits seen were the benchmark's own max_tokens.
+
+Takeaways: speed is clearly better (1.6x prose, 2.1x two at once) and quality outside the uncensored set is within about 4 graded cases of production, but the rule fails on the uncensored section, and Estonian sits exactly at the limit. The follow-up latency is worse than production.
+
 ## 2026-10-26 — qwen3.8-27b-gsq-rco (IQ3_S)
 
 Question: does ISTA-DASLab's GSQ-RCO IQ3_S quant of Qwen3.8-27B (12.1 GB, embedded MTP head, BF16 mmproj) match production's IQ4_XS RVN?
