@@ -59,6 +59,15 @@ class TestNightJobs(unittest.TestCase):
         self.assertEqual(nightjobs.jparse('Sure: {"real": true} done'), {"real": True})
         self.assertIsNone(nightjobs.jparse("no json here"))
 
+    def test_log_ignore_drops_known_noise(self):
+        self.assertTrue(nightjobs._ignored("Unable to get default sink"))
+        self.assertTrue(nightjobs._ignored("gsd_power_backlight_percentage_to_abs: assertion 'max > min' failed"))
+        self.assertFalse(nightjobs._ignored("llama-server: CUDA error: out of memory"))
+
+    def test_timer_calendars(self):
+        with mock.patch.object(nightjobs, "sh", return_value="*-*-* 01:00:00"):
+            self.assertEqual(nightjobs.timer_calendars("see `x.timer` here"), "x.timer: *-*-* 01:00:00")
+
 
 if __name__ == "__main__":
     unittest.main()
