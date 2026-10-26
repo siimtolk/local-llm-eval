@@ -32,6 +32,15 @@ extraction, code (run in a bubblewrap sandbox), hard multi-step tasks, instructi
 judging, Estonian, and an uncensored set of edgy-but-legitimate requests that a stock model
 tends to refuse.
 
+## Live results board
+
+`tools/live_board.py` turns `results/*.json` into `_data/results.json` in the blog repo (`[board] blog_repo` in
+`local.toml`); the blog's `/results/` page draws the quality-versus-speed plot and the tables from it. The
+post-commit hook `tools/post_commit_board.sh` (install: `ln -sf ../../tools/post_commit_board.sh .git/hooks/post-commit`)
+runs `--publish` after every commit that touches `results/*.json`, so a new result shows up without touching any
+article. Display names and kinds (dense, mixture of experts, ...) are in `tools/board_names.json`; a setup without an
+entry still appears, under a name made from its label.
+
 ## Experiments
 
 Models are one kind of experiment. A `config` experiment changes how production's model is served
