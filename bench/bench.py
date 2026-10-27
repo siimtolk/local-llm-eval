@@ -4,6 +4,7 @@
     bench/bench.py --label NAME [--base-url URL] [--api-key-file F] [--results-dir D]
                    [--reps 3] [--temperature T] [--thinking on|off] [--reasoning-effort E] [--cases FILE]
                    [--only speed,tools,agent,reason,extract,code,hard,instruct,judge,estonian,uncensored]
+                   (extra sections: --cases bench/cases_v2.py[,bench/cases_private.py] --only robust,longagent,estonian_free,vision,replay,cron_replay,ctx)
 
 Speed is timed on this side from streamed responses, so it works with any server; llama-server's
 own timings are stored next to it when present. Quality cases (bench/cases.py, or your own file
@@ -36,6 +37,11 @@ def load_sections(path):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+# Row fields that quote a prompt or an answer. Sections a cases file lists in PRIVATE are built from
+# real traffic; their rows are stored without these, so result files (which are tracked) hold scores only.
+QUOTING = ("answer", "calls", "error", "text", "reply", "detail")
 
 
 # ---------------------------------------------------------------- speed
@@ -139,14 +145,23 @@ def main():
     ap.add_argument("--request-extra", type=json.loads, default={},
                     help="a JSON object merged into every request (an experiment's variant.request_extra)")
     ap.add_argument("--cases", default=str(Path(__file__).resolve().parent / "cases.py"),
-                    help="Python file defining SECTIONS (see bench/cases.py)")
+                    help="Python file defining SECTIONS (see bench/cases.py); several files, comma-separated. A file that "
+                         "defines EXTRA (a set of section names) keeps those sections under the result file's \"extra\" key, "
+                         "so the headline totals of the core suite do not change")
     ap.add_argument("--only", help="comma-separated: speed and section names (default: all)")
     ap.add_argument("--model", help="sent as the request's model field (servers that require it, e.g. capy-flash)")
     args = ap.parse_args()
     # model-written code runs with these directories hidden (cases.py reads it at import)
     os.environ.setdefault("BENCH_SANDBOX_HIDE", ":".join(config.get("bench", "sandbox_hide", [])))
-    cases = load_sections(args.cases)
-    sections = cases.SECTIONS
+    files = [f for f in args.cases.split(",") if f]
+    modules = [load_sections(f) for f in files]
+    cases = modules[0]
+    sections, extra_names, private, versions = {}, set(), set(), {}
+    for m in modules:
+        sections.update(m.SECTIONS)
+        extra_names |= set(getattr(m, "EXTRA", ()))
+        private |= set(getattr(m, "PRIVATE", ()))
+        versions.update(getattr(m, "SECTION_VERSIONS", {}))
     extra = {}
     if args.thinking:
         extra["chat_template_kwargs"] = {"enable_thinking": args.thinking == "on"}
@@ -164,7 +179,11 @@ def main():
     out = Path(args.results_dir) / f"{args.label}.json"
     res = json.loads(out.read_text()) if out.exists() else {}
     res.update({"label": args.label, "reps": args.reps, "temperature": args.temperature, "request_extra": extra,
-                "cases": Path(args.cases).name, "suite": getattr(cases, "SUITE", None), "started": time.strftime("%F %T")})
+                "started": time.strftime("%F %T")})
+    if hasattr(modules[0], "SUITE"):  # a run of extra sections alone must not relabel the core suite of this file
+        res.update({"cases": Path(files[0]).name, "suite": modules[0].SUITE})
+    elif "suite" not in res:
+        res.update({"cases": Path(files[0]).name, "suite": None})
     total0 = res.get("total_seconds", 0)
 
     def save():
@@ -198,7 +217,16 @@ def main():
     for name, section in sections.items():
         if name not in only:
             continue
-        rows = res[name] = section(client, args.reps)
+        rows = section(client, args.reps)
+        if not rows:  # the section decided it does not apply (no vision, no private fixtures, no Estonian checker)
+            print(f"{name:10} skipped (not applicable here)", flush=True)
+            continue
+        stored = [{k: v for k, v in r.items() if k not in QUOTING} for r in rows] if name in private else rows
+        if name in extra_names:
+            res.setdefault("extra", {})[name] = stored
+            res.setdefault("section_versions", {})[name] = versions.get(name, "v1")
+        else:
+            res[name] = stored
         fails = sorted({r["case"] for r in rows if not r["ok"]})
         print(f"{name:10} {sum(r['ok'] for r in rows)}/{len(rows)} passed | {sum(r['wall'] for r in rows):6.0f}s total | "
               f"median {statistics.median(r['wall'] for r in rows):5.1f}s per case" + (f" | out of tokens: {sum(bool(r.get('truncated')) for r in rows)}" if any(r.get("truncated") for r in rows) else "")

@@ -129,6 +129,31 @@ stdout (`[notify]`). The judge can be a hosted model (`claude -p`) or the model 
 production (`tools/openai_chat.py`, any OpenAI-compatible server). A bridge that cannot run this
 repo, e.g. one in another container, can queue poll votes in a file for `candidates.py votes`.
 
+## Extra sections: agent robustness and your own traffic
+
+The core suite (`bench/cases.py`) is frozen, so every result already measured stays comparable. Newer sections live
+next to it and are stored under each result file's `extra` key, so the headline totals and the live board do not
+change. Each has its own version in `SECTION_VERSIONS`.
+
+```
+python3 bench/bench.py --label my-model --cases bench/cases_v2.py                        # public, synthetic sections
+python3 bench/bench.py --label my-model --cases bench/cases_v2.py,bench/cases_private.py  # plus sections from your own traffic
+```
+
+| Section | What it tests | Graded by |
+|---|---|---|
+| `robust` | Prompt injection (web page, tool field, file, mail, an exfiltration attempt), tool errors and retries, huge or truncated tool output, one tool among ~25 similar ones, destructive commands (look first, no force-push, ask what "old" means) and two over-correction controls | Calls made and the final answer |
+| `longagent` | 15-30 call tasks in a real `bubblewrap` shell: fix bugs, trace a config value, rename across files, read gzip logs, find a commit with `git log -S`, leave `vendor/` alone, a bulk edit | The files at the end, by hidden tests |
+| `estonian_free` | Free-form Estonian: chat, translation both ways, e-mail register, proofreading, English tool results answered in Estonian | [estonian-mcp](https://github.com/silly-geese/estonian-mcp) spelling, punctuation and compound checks, plus required facts. Skipped when it is not reachable |
+| `vision` | Generated images: text, counting, a chart, a dialog, a table, an Estonian sign | Exact answer. Skipped when the server has no vision |
+| `replay`, `cron_replay`, `ctx` | Your own agent transcripts (see below) | Next step agrees with the one that worked; the job's own output contract; the cost of a real ~15k-token prefix |
+
+The last three read fixtures from `[bench] private_dir` (or `$BENCH_PRIVATE_DIR`). The fixtures are real transcripts and
+**must not be published**: `tools/build_replay.py` builds them from a Hermes `state.db` into a folder that git ignores
+(`state/private`), and their result rows are stored without any quoted text. Without the folder these three sections are
+skipped. `python3 -m unittest tests.test_cases_v2 tests.test_cases_private` checks every grader offline: a scripted good run
+must pass, a scripted bad run (following an injection, forcing a push, editing the tests) and a model that does nothing must fail.
+
 ## Results
 
 Latest run per model on this repo's reference machine (2 × 16 GB GPUs). Graded = graded runs
@@ -175,11 +200,11 @@ Write-ups are in [JOURNAL.md](JOURNAL.md), raw numbers in `results/`. The table 
 ## Layout
 
 ```
-bench/       bench.py, cases.py, harness.py; NIGHTLY.md, NIGHTLY_VLLM.md and EXPERIMENT.md, the agent's procedures
+bench/       bench.py, cases.py (core), cases_v2.py (extra), cases_private.py (your traffic), harness.py; NIGHTLY.md, NIGHTLY_VLLM.md and EXPERIMENT.md, the agent's procedures
 pipeline/    discover, judge, risk, candidates (store), experiments, fetch, runner, report, notify, config
 prompts/     the judge prompt
 results/     one JSON per benchmark run
-tools/       leak_check.sh (pre-commit and CI), results_table.py, agent_settings.py, openai_chat.py (judge command)
+tools/       leak_check.sh (pre-commit and CI), build_replay.py, results_table.py, agent_settings.py, openai_chat.py (judge command)
 JOURNAL.md   test write-ups, newest first
 ```
 

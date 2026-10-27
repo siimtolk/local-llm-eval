@@ -114,6 +114,9 @@ max_ready = 6                       # candidates waiting downloaded at most
 [bench]
 # Extra directories hidden from model-written code (home and /root are always hidden).
 sandbox_hide = ["/mnt", "/srv"]
+# Fixtures built from your own agent traffic (tools/build_replay.py); used by bench/cases_private.py.
+# Never publish them. state/ is gitignored. Without this key those sections are skipped.
+# private_dir = "state/private"
 
 # [texts]
 # Replace single messages of pipeline/texts.py for this machine, e.g.

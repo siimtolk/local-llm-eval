@@ -20,4 +20,7 @@
   ```
 - **Bench cases** (`bench/cases.py`): results are comparable only within one `SUITE` version.
   Changing what a case asks or how it is graded means a new `SUITE` date.
+- **Extra sections** (`bench/cases_v2.py`, `bench/cases_private.py`): changing a case or its grader bumps that section's
+  entry in `SECTION_VERSIONS`. Every new case needs a scripted good run and a bad run in `tests/` (a do-nothing model must fail).
+  Fixtures built from real traffic stay out of the repo.
 - Python 3.11+ (tomllib), stdlib only.
