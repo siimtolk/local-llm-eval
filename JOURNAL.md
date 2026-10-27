@@ -5,6 +5,31 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## 2026-10-27 — experiment 20261027-capy-rvn-nvfp4-a: capy-flash v0.7.5, RVN BF16 -> NVFP4 variant A (every layer projection NVFP4), 2 x 128k, thinking budget 1500, lease window 0
+
+Hypothesis: the smallest, fastest RVN rebuild (all layer projections NVFP4, nvfp4_mse, A16Only) is the quality floor of the RVN rebuild, near the lyf Heretic NVFP4 import (276/294) or slightly better, and above x1.3 production speed.
+
+Variant: engine experiment, backend capy (v0.7.5, model `capy-qwen3.8-27b-rvn-nvfp4-a`, 17.0 GiB weights), extra args `--max-context 131072 --kv-capacity 262144 --max-concurrency 2 --default-thinking-budget 1500 --kv-lease-window 0`. Started on the first try (ready in 71 s, KV 262,144 tokens int8, no fallback to 196608, no A16Only/FP8 shape rejected). No reasoning_effort sent. Started 19:45 by hand outside the window. Labels `exp-20261027-capy-rvn-nvfp4-a` and `_nothink`. The llama config copy was not used.
+
+Verdict: `20261027-capy-rvn-nvfp4-a: not-beneficial (3/4 pass-rule conditions met)`. Passed (core, uncensored included) 282 vs baseline 294 (delta -12, limit -6): the failed condition. Estonian 39 vs 41 (-2, ok); prose 78.7 vs 46.0 tok/s (x1.71); parallel 130.0 total (69.2 + 68.7) vs production 68.8 (x1.89 on the total; the verdict uses its own per-request metric); code 20/24 vs 21; tool JSON 117.8 vs 65.5; 30k-prompt TTFT 24.5 s vs 24.8 s.
+
+Sections: tools 39/42, agent 48/48, reason 30/30, extract 13/15, code 20/24, hard 44/48 (long_context_lookup and very_long_context failed), instruct 20/21, judge 18/18, estonian 39/45 (failed genitive, jalg, number_words, tutar), uncensored 11/11. Thinking-off pass: tools 38/42, extract 12/15, instruct 20/21, judge 18/18, estonian 33/45.
+
+Extras (no baseline for the extras yet; `$BASELINE` has no `extra` key): robust 64/72, longagent 20/21, estonian_free 33/39, vision 18/18, replay 111/180, cron_replay 23/36, ctx 27/45. None skipped. (B had 65/72, 21/21, 31/39, 17/18, 101/180, 23/36, 27/45.)
+
+Speed: prose 78.7, tool JSON 117.8 tok/s, prompt 1227 tok/s; two at once 130.0 tok/s total; decode after 30k 77.4 tok/s (MTP 50%), after 90k 69.0 tok/s (MTP 48%). Speed is practically the same as B.
+
+Checks:
+- Follow-up time to first token: 0.3 s for follow-ups with a cache hit in the alternating test (production 1.3 s), first turn 10.1 s; 30k prompt TTFT 24.5 s, 90k 89 s.
+- VRAM while serving: 14.3 GB and 14.0 GB on the two cards (0.3-0.5 GB on the third GPU).
+- Thinking budget on a code request without reasoning_effort: 1524 reasoning tokens of 2437 completion tokens, finish stop. Thinking stayed at the 1500 budget (not 2048).
+- 'output limit': 18 of 1625 "done" lines: 15 in the speed section (700/600/500/300/60-token caps), 3 in the uncensored section (all three used the full 1500 thinking tokens). Lease workaround `--kv-lease-window 0` was in use.
+- Uncensored: 11/11, no refusals.
+
+Note: the pre-commit leak check blocked the result file on two model-generated strings (a home-directory path in a tool-call argument in robust and another in a command in longagent); they were replaced by `HOME-REDACTED` markers in `results/exp-20261027-capy-rvn-nvfp4-a.json` (no effect on scores).
+
+Takeaways: A is as fast as B but loses 6 more core cases than B (282 vs 288 incl. uncensored): code, hard (long-context) and extract slipped, so keeping the first/last layers in FP8 (B) is worth it. Estonian still holds (39/45). Weights and .ninfer kept.
+
 ## 2026-10-27 — experiment 20261027-capy-rvn-nvfp4-b: capy-flash v0.7.5, RVN (Heretic ARA + 2 passes) BF16 -> NVFP4 variant B, 2 x 128k, thinking budget 1500, lease window 0
 
 Hypothesis: the RVN weights rebuilt locally for capy-flash (nvfp4_mse, A16Only, first/last 2 layers FP8, BF16-sourced MTP and vision) keep production's quality (passed closer to 294 than the lyf import's 276, Estonian >= 38, uncensored passing with budget 1500) and stay above x1.3 production speed.
