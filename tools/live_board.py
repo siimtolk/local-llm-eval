@@ -13,7 +13,7 @@ several runs of one setup (reruns `_r2`, other llama.cpp builds `_b11707`, `-2` 
 stands for it; the earlier ones stay in the data with `latest: false`. Quality is graded runs
 passed with Estonian and the uncensored set left out, as in the articles. The extra sections (estonian_free,
 vision, robust, longagent under the result's "extra" key; replay, cron_replay, ctx under "own_traffic") are shown as
-their own columns and never count in that percentage.
+their own columns and count in that percentage for a setup that ran them (graded_core / pct_core leave them out).
 
 Display names and kinds come from tools/board_names.json (key -> {name, kind}); a setup without an
 entry gets a name made from its label. The blog repo is `[board] blog_repo` in local.toml.
@@ -129,7 +129,7 @@ def passed(rows):
 def extra_scores(res):
     """The sections kept outside the core totals: {"extra": {section: [passed, runs]}, "own_traffic": [passed, runs] | None,
     "own_traffic_parts": {section: [passed, runs]}, "section_versions": {...}}. The board shows them next to the core
-    areas and never adds them to the graded total."""
+    areas; a setup that ran them also counts them in its graded total (graded / pct; graded_core / pct_core are the base areas only)."""
     def rows_of(key, names):
         d = res.get(key) or {}
         return {n: passed(d[n]) for n in names if isinstance(d.get(n), list) and d[n] and all(isinstance(r, dict) and "ok" in r for r in d[n])}
@@ -200,6 +200,9 @@ def collect(results_dir, baseline, confs_dir=None, engine_titles=None):
             continue
         sec = sections(res)
         ok, tot = totals(res, NOT_GRADED | {"estonian"})
+        more = extra_scores(res)  # the newer sections count in the graded total of a setup that ran them
+        add = [more["extra"][n] for n in more["extra"]] + ([more["own_traffic"]] if more["own_traffic"] else [])
+        all_ok, all_tot = ok + sum(p for p, _ in add), tot + sum(n for _, n in add)
         nothink = None
         nt = path.with_name(f"{path.stem}_nothink.json")
         if nt.exists():
@@ -218,11 +221,12 @@ def collect(results_dir, baseline, confs_dir=None, engine_titles=None):
             "sections": {k: list(v) for k, v in sec.items() if k not in NOT_GRADED | {"estonian"}},
             "date": (res.get("started") or "")[:10], "started": res.get("started") or "",
             "production": path.stem == baseline,
-            "graded": [ok, tot], "pct": round(100 * ok / tot, 1),
+            "graded": [all_ok, all_tot], "pct": round(100 * all_ok / all_tot, 1),
+            "graded_core": [ok, tot], "pct_core": round(100 * ok / tot, 1),
             "estonian": list(sec["estonian"]) if "estonian" in sec else None,
             "uncensored": list(sec["uncensored"]) if "uncensored" in sec else None,
             "nothink": nothink,
-            **extra_scores(res),
+            **more,
             "minutes": round(res["total_seconds"] / 60, 1) if res.get("total_seconds") else None,
             **sp,
         })
