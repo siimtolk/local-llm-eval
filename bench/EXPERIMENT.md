@@ -54,7 +54,11 @@ $EXPERIMENTS set <id> failed '<one-sentence reason>'   # when the variant could 
    `variant.server_args_remove` (an argument with its value), append `variant.server_args_add`
    unchanged, and add a comment at the top: `# experiment <id>: <title> (from <production config>)`.
    Give it production's API key: `ln -sfn $PRODUCTION_MODEL $SERVING/secrets/exp-<id>`.
-   Weights and everything else stay production's.
+   Weights and everything else stay production's. `serve` looks for them in `MODELS_DIR/<config name>`, a
+   folder that does not exist for `exp-<id>` and cannot be made under `models/`: in the copy add
+   `MODELS_DIR="${ROOT_DIR}/logs/exp-models"` (below the header comment) and make the link
+   `ln -sfn $SERVING/models/<production's weights dir> $SERVING/logs/exp-models/exp-<id>`. Keep `QUANT_FILE` and
+   `MMPROJ_FILE` as plain file names: a `../` path through the missing folder cannot resolve.
 3. **Stop production:** `$STOP_PRODUCTION` (exactly that, as its own command). It waits until the
    GPUs are free.
 4. **Serve the variant:** `$SERVE start exp-<id> --port $TEST_PORT`, plus
