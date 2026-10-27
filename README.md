@@ -133,11 +133,12 @@ repo, e.g. one in another container, can queue poll votes in a file for `candida
 
 The core suite (`bench/cases.py`) is frozen, so every result already measured stays comparable. Newer sections live
 next to it and are stored under each result file's `extra` key, so the headline totals and the live board do not
-change. Each has its own version in `SECTION_VERSIONS`.
+change. Each has its own version in `SECTION_VERSIONS`. They run by default after the core suite; `--cases bench/cases.py` runs the core alone.
 
 ```
-python3 bench/bench.py --label my-model --cases bench/cases_v2.py                        # public, synthetic sections
-python3 bench/bench.py --label my-model --cases bench/cases_v2.py,bench/cases_private.py  # plus sections from your own traffic
+python3 bench/bench.py --label my-model                                                  # core + extra sections (the default)
+python3 bench/bench.py --label my-model --cases bench/cases.py                           # the core suite alone
+python3 bench/bench.py --label my-model --only robust,longagent,estonian_free,vision     # one section group
 ```
 
 | Section | What it tests | Graded by |

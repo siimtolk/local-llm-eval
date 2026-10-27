@@ -66,7 +66,12 @@ $EXPERIMENTS set <id> failed '<one-sentence reason>'   # when the variant could 
    `bench/bench.py --label exp-<id> --base-url http://127.0.0.1:$TEST_PORT --api-key-file $SERVING/secrets/exp-<id>/api_key.txt --request-extra '<variant.request_extra as JSON>' > $SERVING/logs/bench-exp-<id>.log 2>&1`
    (leave out `--request-extra` when it is empty). Run it as a background command with a time
    limit that covers it (up to 110 min); if it is cut off, rerun only the missing sections with
-   `--only` and the same label. Then run each of the spec's `checks` against the variant server
+   `--only` and the same label.
+   The default run includes the extra sections (`bench/cases_v2.py`, `bench/cases_private.py`: robust, longagent,
+   estonian_free, vision, replay, cron_replay, ctx). They land under the result file's `extra` key and do
+   not touch the core totals or the verdict. Sections the server cannot run (no vision, no Estonian checker,
+   no private fixtures) print `skipped`: that is fine, say which in the journal.
+   Then run each of the spec's `checks` against the variant server
    and note what it showed. Note the VRAM use (`nvidia-smi`) while it serves.
 6. **Restore production:** `$SERVE stop exp-<id>` (and `--backend <variant.backend>`), then
    `$START_PRODUCTION || $ENSURE_PRODUCTION`. Check that `curl -s $PRODUCTION_URL/health` shows ok
@@ -78,7 +83,9 @@ $EXPERIMENTS set <id> failed '<one-sentence reason>'   # when the variant could 
 8. **Write it up** in `$EVAL/JOURNAL.md`: a section `## <date> — experiment <id>: <title>` above
    the older ones: the hypothesis, the variant (the changed arguments, build, backend), the
    verdict line and its metrics against the baseline, what the checks showed, VRAM, and short
-   takeaways. The README results table is for models; leave it alone.
+   takeaways. Add a line per extra section (passed/total, from `extra` in the result file) next to the
+   baseline's, when `$RESULTS/$BASELINE.json` has an `extra` key; if it has none, say that there is no
+   baseline for the extras yet. The README results table is for models; leave it alone.
 9. **Commit and push** in `$EVAL`: `results/exp-<id>.json` and `JOURNAL.md`, message
    `Experiment <id>: <verdict>`. The pre-commit leak check must pass; never bypass it. Then
    `git push`. In `$SERVING`, commit `models.d/exp-<id>.conf.sh` (message

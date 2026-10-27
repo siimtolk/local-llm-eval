@@ -2,7 +2,7 @@
 """Speed + quality benchmark for any OpenAI-compatible endpoint (written for llama-server).
 
     bench/bench.py --label NAME [--base-url URL] [--api-key-file F] [--results-dir D]
-                   [--reps 3] [--temperature T] [--thinking on|off] [--reasoning-effort E] [--cases FILE]
+                   [--reps 3] [--temperature T] [--thinking on|off] [--reasoning-effort E] [--cases FILE[,FILE]]
                    [--only speed,tools,agent,reason,extract,code,hard,instruct,judge,estonian,uncensored]
                    (extra sections: --cases bench/cases_v2.py[,bench/cases_private.py] --only robust,longagent,estonian_free,vision,replay,cron_replay,ctx)
 
@@ -144,8 +144,9 @@ def main():
     ap.add_argument("--reasoning-effort", help="sent as reasoning_effort (e.g. low, medium, high, none)")
     ap.add_argument("--request-extra", type=json.loads, default={},
                     help="a JSON object merged into every request (an experiment's variant.request_extra)")
-    ap.add_argument("--cases", default=str(Path(__file__).resolve().parent / "cases.py"),
-                    help="Python file defining SECTIONS (see bench/cases.py); several files, comma-separated. A file that "
+    ap.add_argument("--cases", default=",".join(str(Path(__file__).resolve().parent / f) for f in ("cases.py", "cases_v2.py", "cases_private.py")),
+                    help="Python file defining SECTIONS (see bench/cases.py); several files, comma-separated; default: the core "
+                         "suite plus the extra sections (the private ones are skipped without fixtures). A file that "
                          "defines EXTRA (a set of section names) keeps those sections under the result file's \"extra\" key, "
                          "so the headline totals of the core suite do not change")
     ap.add_argument("--only", help="comma-separated: speed and section names (default: all)")

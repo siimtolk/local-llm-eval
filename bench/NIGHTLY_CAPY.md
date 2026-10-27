@@ -42,7 +42,7 @@ card, do not touch the production config or unit), with these differences:
    no reasoning with thinking off. A failure no documented flag fixes → restore production, record `failed`.
 5. **Benchmark** as in NIGHTLY.md step 6, with `--base-url http://127.0.0.1:$TEST_PORT --api-key-file
    $SERVING/secrets/$PRODUCTION_MODEL/api_key.txt` and the model id from step 3, label `<model>_capy0.7.4_tp2`:
-   the full suite, then the `_nothink` pass. Note VRAM (nvidia-smi during the suite), the MTP acceptance the
+   the full suite (the extra sections included, see NIGHTLY.md step 6), then the `_nothink` pass. Note VRAM (nvidia-smi during the suite), the MTP acceptance the
    log reports, and the follow-up time after a long prompt (the engine keeps conversations in a context cache).
    The `27b` profile serves one request at a time (`--max-concurrency 1`): the suite's two-at-once parts then
    queue. If time allows, restart once with `-- --max-concurrency 2` and run only the speed part again; report
