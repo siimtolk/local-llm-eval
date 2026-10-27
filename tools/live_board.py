@@ -11,7 +11,9 @@ is a full run of an `engine` experiment, another backend serving a model, which 
 experiment's title), and of
 several runs of one setup (reruns `_r2`, other llama.cpp builds `_b11707`, `-2` re-tests) the latest
 stands for it; the earlier ones stay in the data with `latest: false`. Quality is graded runs
-passed with Estonian and the uncensored set left out, as in the articles.
+passed with Estonian and the uncensored set left out, as in the articles. The extra sections (estonian_free,
+vision, robust, longagent under the result's "extra" key; replay, cron_replay, ctx under "own_traffic") are shown as
+their own columns and never count in that percentage.
 
 Display names and kinds come from tools/board_names.json (key -> {name, kind}); a setup without an
 entry gets a name made from its label. The blog repo is `[board] blog_repo` in local.toml.
@@ -32,6 +34,8 @@ from results_table import sections  # noqa: E402
 
 NAMES = Path(__file__).resolve().parent / "board_names.json"
 NOT_GRADED = {"uncensored"}
+EXTRA_SECTIONS = ("estonian_free", "vision", "robust", "longagent")  # result key "extra": the public, synthetic sections
+TRAFFIC_SECTIONS = ("replay", "cron_replay", "ctx")                  # result key "own_traffic": built from the owner's own agent history
 
 
 def setup_key(label):
@@ -118,6 +122,25 @@ def totals(res, skip):
     return (sum(p for p, _ in sec.values()), sum(n for _, n in sec.values())) if sec else (0, 0)
 
 
+def passed(rows):
+    return [sum(1 for r in rows if r.get("ok")), len(rows)]
+
+
+def extra_scores(res):
+    """The sections kept outside the core totals: {"extra": {section: [passed, runs]}, "own_traffic": [passed, runs] | None,
+    "own_traffic_parts": {section: [passed, runs]}, "section_versions": {...}}. The board shows them next to the core
+    areas and never adds them to the graded total."""
+    def rows_of(key, names):
+        d = res.get(key) or {}
+        return {n: passed(d[n]) for n in names if isinstance(d.get(n), list) and d[n] and all(isinstance(r, dict) and "ok" in r for r in d[n])}
+    extra, parts = rows_of("extra", EXTRA_SECTIONS), rows_of("own_traffic", TRAFFIC_SECTIONS)
+    versions = res.get("section_versions") or {}
+    return {"extra": extra,
+            "own_traffic": [sum(p[0] for p in parts.values()), sum(p[1] for p in parts.values())] if parts else None,
+            "own_traffic_parts": parts,
+            "section_versions": {n: versions[n] for n in list(extra) + list(parts) if n in versions}}
+
+
 def weights_urls(confs_dir):
     """{serving config name: Hugging Face page} from HF_REPO in models.d/<name>.conf.sh."""
     out = {}
@@ -199,6 +222,7 @@ def collect(results_dir, baseline, confs_dir=None, engine_titles=None):
             "estonian": list(sec["estonian"]) if "estonian" in sec else None,
             "uncensored": list(sec["uncensored"]) if "uncensored" in sec else None,
             "nothink": nothink,
+            **extra_scores(res),
             "minutes": round(res["total_seconds"] / 60, 1) if res.get("total_seconds") else None,
             **sp,
         })
@@ -229,6 +253,9 @@ def check(data, old):
         for f in ("tool_json", "prompt_30k", "parallel"):
             if m[f] is not None and m[f] <= 0:
                 bad.append(f"{m['label']}: {f} is {m[f]}")
+        for n, p in {**m["extra"], **m["own_traffic_parts"]}.items():
+            if not p[1] or p[0] > p[1]:
+                bad.append(f"{m['label']}: {n} {p} is impossible")
     if len({m["key"] for m in pts}) != len(pts):
         bad.append("two points for one setup")
     if old and old.get("suite") == data["suite"] and len(pts) < 0.8 * len([m for m in old["models"] if m["latest"]]):
