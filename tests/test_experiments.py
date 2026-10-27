@@ -109,6 +109,20 @@ class TestPure(Base):
         self.assertAlmostEqual(m["tok_s.deep_decode"], 20.0)  # the depth with an error has no number
         self.assertNotIn("tok_s.alternating", m)
 
+    def test_extra_sections_are_metrics_but_not_in_passed(self):
+        r = result()
+        r["extra"] = {"robust": [{"case": "a", "ok": True}, {"case": "b", "ok": False}], "vision": []}
+        m = experiments.metrics(r)
+        self.assertEqual(m["extra.robust"], 1)
+        self.assertNotIn("extra.vision", m)
+        self.assertEqual(m["passed"], experiments.metrics(result())["passed"])
+        only = experiments.metrics({"suite": "s", "extra": {"longagent": [{"case": "a", "ok": True}]}})
+        self.assertEqual(only, {"extra.longagent": 1})  # an extras-only run has no core "passed"
+        self.assertIn("extra.robust", experiments.KNOWN_METRICS)
+        t = experiments.metrics({"suite": "s", "own_traffic": {"replay": [{"case": "a", "ok": True}]}})
+        self.assertEqual(t, {"own_traffic.replay": 1})
+        self.assertIn("own_traffic.ctx", experiments.KNOWN_METRICS)
+
     def test_each_operator(self):
         v, b = {"x": 110.0}, {"x": 100.0}
         cases = [({"min_delta": 10}, True), ({"min_delta": 11}, False), ({"max_delta": 10}, True), ({"max_delta": 9}, False),

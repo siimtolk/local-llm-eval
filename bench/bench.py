@@ -147,7 +147,7 @@ def main():
     ap.add_argument("--cases", default=",".join(str(Path(__file__).resolve().parent / f) for f in ("cases.py", "cases_v2.py", "cases_private.py")),
                     help="Python file defining SECTIONS (see bench/cases.py); several files, comma-separated; default: the core "
                          "suite plus the extra sections (the private ones are skipped without fixtures). A file that "
-                         "defines EXTRA (a set of section names) keeps those sections under the result file's \"extra\" key, "
+                         "defines EXTRA (a set of section names) keeps those sections under the result file's \"extra\" key (\"own_traffic\" for the private ones), "
                          "so the headline totals of the core suite do not change")
     ap.add_argument("--only", help="comma-separated: speed and section names (default: all)")
     ap.add_argument("--model", help="sent as the request's model field (servers that require it, e.g. capy-flash)")
@@ -223,8 +223,8 @@ def main():
             print(f"{name:10} skipped (not applicable here)", flush=True)
             continue
         stored = [{k: v for k, v in r.items() if k not in QUOTING} for r in rows] if name in private else rows
-        if name in extra_names:
-            res.setdefault("extra", {})[name] = stored
+        if name in extra_names:  # own-traffic (private) sections are kept apart from the synthetic extras
+            res.setdefault("own_traffic" if name in private else "extra", {})[name] = stored
             res.setdefault("section_versions", {})[name] = versions.get(name, "v1")
         else:
             res[name] = stored

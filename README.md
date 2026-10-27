@@ -132,7 +132,7 @@ repo, e.g. one in another container, can queue poll votes in a file for `candida
 ## Extra sections: agent robustness and your own traffic
 
 The core suite (`bench/cases.py`) is frozen, so every result already measured stays comparable. Newer sections live
-next to it and are stored under each result file's `extra` key, so the headline totals and the live board do not
+next to it and are stored under each result file's `extra` key (synthetic: robust, longagent, estonian_free, vision) or `own_traffic` key (built from your agent's real history: replay, cron_replay, ctx), so the headline totals and the live board do not
 change. Each has its own version in `SECTION_VERSIONS`. They run by default after the core suite; `--cases bench/cases.py` runs the core alone.
 
 ```

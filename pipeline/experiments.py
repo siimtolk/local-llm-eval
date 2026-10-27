@@ -54,7 +54,12 @@ LABEL = re.compile(r"[A-Za-z0-9][\w.+-]{0,200}")
 # bench/cases.py SECTIONS and bench.py speed() tests, the names a result JSON has
 CATEGORIES = ("tools", "agent", "reason", "extract", "code", "hard", "instruct", "judge", "estonian", "uncensored")
 SPEED_TESTS = ("prose", "tool_json", "long_prompt", "parallel", "alternating", "deep_decode")
-KNOWN_METRICS = ({"passed"} | {f"passed.{c}" for c in CATEGORIES}
+# bench/cases_v2.py sections are stored under the result's "extra" key, bench/cases_private.py sections (your own traffic)
+# under "own_traffic"; both stay outside the core totals
+EXTRA_SECTIONS = ("robust", "longagent", "estonian_free", "vision")
+TRAFFIC_SECTIONS = ("replay", "cron_replay", "ctx")
+KNOWN_METRICS = ({"passed"} | {f"passed.{c}" for c in CATEGORIES} | {f"extra.{s}" for s in EXTRA_SECTIONS}
+                 | {f"own_traffic.{s}" for s in TRAFFIC_SECTIONS}
                  | {f"{m}.{s}" for m in ("tok_s", "ttft") for s in SPEED_TESTS})
 OPS = ("min_delta", "max_delta", "min_ratio", "max_ratio")
 VARIANT_KEYS = ("llama_cpp", "server_args_add", "server_args_remove", "request_extra", "backend", "notes")
@@ -98,7 +103,8 @@ def _mean(values):
 
 def metrics(result):
     """Every metric of a result JSON (the shape bench.py writes): passed, passed.<category>,
-    tok_s.<speed test>, ttft.<speed test>. A test without numbers has no entry."""
+    extra.<section> / own_traffic.<section> (passed cases of a section under "extra" / "own_traffic"), tok_s.<speed test>, ttft.<speed test>.
+    A test without numbers has no entry."""
     out, total = {}, 0
     for name, rows in result.items():
         if isinstance(rows, list) and rows and all(isinstance(r, dict) and "ok" in r for r in rows):
@@ -106,6 +112,10 @@ def metrics(result):
             total += n
     if out:
         out["passed"] = total
+    for group in ("extra", "own_traffic"):  # these sections never count in "passed"
+        for name, rows in (result.get(group) or {}).items():
+            if isinstance(rows, list) and rows and all(isinstance(r, dict) and "ok" in r for r in rows):
+                out[f"{group}.{name}"] = sum(1 for r in rows if r["ok"] is True)
     for name, test in (result.get("speed") or {}).items():
         for field in ("tok_s", "ttft"):
             value = _mean(r.get(field) for r in _runs(test))
