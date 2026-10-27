@@ -638,7 +638,7 @@
    "calls": []
   }
  ],
- "total_seconds": 180.21011877059937,
+ "total_seconds": 271.6111137866974,
  "extract": [
   {
    "case": "invoice",
@@ -1075,6 +1075,441 @@
    "truncated": false,
    "tokens": 59,
    "answer": ", which is the chemical symbol for gold. Since \"Ag\" identifies a different element, it is incorrect.\n\nVERDICT: incorrect"
+  }
+ ],
+ "estonian": [
+  {
+   "case": "et_light",
+   "ok": true,
+   "wall": 1.6675522327423096,
+   "tokens": 100,
+   "calls": [
+    [
+     "set_light",
+     {
+      "room": "elutuba",
+      "brightness": 50
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_light",
+   "ok": false,
+   "wall": 2.0534467697143555,
+   "tokens": 12,
+   "calls": []
+  },
+  {
+   "case": "et_light",
+   "ok": false,
+   "wall": 0.38486409187316895,
+   "tokens": 21,
+   "calls": []
+  },
+  {
+   "case": "et_weather",
+   "ok": true,
+   "wall": 1.9746158123016357,
+   "tokens": 104,
+   "calls": [
+    [
+     "get_weather",
+     {
+      "location": "Pärnu",
+      "day": "tomorrow"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_weather",
+   "ok": true,
+   "wall": 4.510602712631226,
+   "tokens": 90,
+   "calls": [
+    [
+     "get_weather",
+     {
+      "location": "Pärnu",
+      "day": "tomorrow"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_weather",
+   "ok": true,
+   "wall": 2.2079834938049316,
+   "tokens": 138,
+   "calls": [
+    [
+     "get_weather",
+     {
+      "location": "Pärnu",
+      "day": "tomorrow"
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_timer",
+   "ok": false,
+   "wall": 1.1640238761901855,
+   "tokens": 57,
+   "calls": [
+    [
+     "set_timer",
+     {
+      "seconds": 3600
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_timer",
+   "ok": false,
+   "wall": 3.7343807220458984,
+   "tokens": 49,
+   "calls": [
+    [
+     "set_timer",
+     {
+      "seconds": 3600
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_timer",
+   "ok": false,
+   "wall": 2.7871475219726562,
+   "tokens": 75,
+   "calls": [
+    [
+     "set_timer",
+     {
+      "seconds": 3600
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_shopping",
+   "ok": true,
+   "wall": 1.237173080444336,
+   "tokens": 60,
+   "calls": [
+    [
+     "add_shopping_items",
+     {
+      "items": [
+       "piim",
+       "leib",
+       "leib"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_shopping",
+   "ok": true,
+   "wall": 3.775413990020752,
+   "tokens": 58,
+   "calls": [
+    [
+     "add_shopping_items",
+     {
+      "items": [
+       "piim",
+       "leib",
+       "leib"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_shopping",
+   "ok": true,
+   "wall": 2.614159345626831,
+   "tokens": 53,
+   "calls": [
+    [
+     "add_shopping_items",
+     {
+      "items": [
+       "piim",
+       "2 leiba"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "case": "et_math",
+   "ok": true,
+   "wall": 0.9435708522796631,
+   "tokens": 70,
+   "truncated": false,
+   "answer": "õuna.\nKui annad 1 ära, jääb sulle: \\(3 - 1 = 2\\) õuna.\nKui ostad 5 juurde, siis lisandub: \\(2 + 5 = 7\\) õuna.\n\nANSWER: 7"
+  },
+  {
+   "case": "et_math",
+   "ok": true,
+   "wall": 2.1599504947662354,
+   "tokens": 54,
+   "truncated": false,
+   "answer": "Alustasin 3 õunaga.\nAndsin 1 ära: \\(3 - 1 = 2\\).\nOstsin 5 juurde: \\(2 + 5 = 7\\).\n\nANSWER: 7"
+  },
+  {
+   "case": "et_math",
+   "ok": true,
+   "wall": 2.6328530311584473,
+   "tokens": 83,
+   "truncated": false,
+   "answer": "l jääb: $3 - 1 = 2$ õuna.\nSeejärel ostad 5 juurde, seega lisandub neid olemasolevate peale: $2 + 5 = 7$ õuna.\n\nANSWER: 7"
+  },
+  {
+   "case": "et_read",
+   "ok": true,
+   "wall": 3.6311373710632324,
+   "tokens": 328,
+   "truncated": false,
+   "answer": "- 9)$ tundi ja $(45 - 15)$ minutit.\n$2$ tundi ja $30$ minutit.\n$2 \\times 60 + 30 = 120 + 30 = 150$ minutit.\n\nANSWER: 150"
+  },
+  {
+   "case": "et_read",
+   "ok": true,
+   "wall": 4.441312313079834,
+   "tokens": 240,
+   "truncated": false,
+   "answer": " minutit = 120 minutit.\nLisame sellele jäänud 30 minutit:\n$120 + 30 = 150$ minutit.\n\nVastus on 150 minutit.\n\nANSWER: 150"
+  },
+  {
+   "case": "et_read",
+   "ok": true,
+   "wall": 5.395664691925049,
+   "tokens": 337,
+   "truncated": false,
+   "answer": "1 tundi 45 minutit = (11 × 60) + 45 = 660 + 45 = 705 minutit pärast keskööt.\nVahe: 705 - 555 = 150 minutit.\n\nANSWER: 150"
+  },
+  {
+   "case": "et_illative",
+   "ok": true,
+   "wall": 0.4804093837738037,
+   "tokens": 34,
+   "truncated": false,
+   "answer": "Sõna \"maja\" sisseütlev kääne (illatiiv) ainsuses on \"majja\".\n\nANSWER: majja"
+  },
+  {
+   "case": "et_illative",
+   "ok": false,
+   "wall": 1.8014564514160156,
+   "tokens": 28,
+   "truncated": false,
+   "answer": "Sõna \"maja\" sisseütlev kääne ainsuses on \"maju\".\n\nANSWER: maju"
+  },
+  {
+   "case": "et_illative",
+   "ok": true,
+   "wall": 1.7867181301116943,
+   "tokens": 30,
+   "truncated": false,
+   "answer": "Sõna \"maja\" sisseütlev kääne ainsuses on \"majja\".\n\nANSWER: majja"
+  },
+  {
+   "case": "et_genitive",
+   "ok": true,
+   "wall": 1.3727941513061523,
+   "tokens": 87,
+   "truncated": false,
+   "answer": "genitiiv) ainsuses moodustatakse lisades juurtele lõpp -a või -e. Sõna \"tuba\" puhul on omastav kääne \"toa\".\n\nANSWER: toa"
+  },
+  {
+   "case": "et_genitive",
+   "ok": false,
+   "wall": 5.475610733032227,
+   "tokens": 299,
+   "truncated": false,
+   "answer": "ale\n11. Translatiiv: tuppa\n12. Vokatiiv: tuba\n\nSeega omastav kääne on \"tuba\".\n\nVastus peab olema üks sõna.\n\nANSWER: tuba"
+  },
+  {
+   "case": "et_genitive",
+   "ok": true,
+   "wall": 2.3125011920928955,
+   "tokens": 57,
+   "truncated": false,
+   "answer": " kääne ainsuses on \"toa\". See tähendab, et midagi kuulub toale või on seotud toaga (nt \"toa ukse avamine\").\n\nANSWER: toa"
+  },
+  {
+   "case": "et_tutar",
+   "ok": false,
+   "wall": 0.4484097957611084,
+   "tokens": 32,
+   "truncated": false,
+   "answer": "Sõna \"tütar\" omastav kääne ainsuses on \"tütreda\".\n\nANSWER: tütreda"
+  },
+  {
+   "case": "et_tutar",
+   "ok": false,
+   "wall": 1.9383056163787842,
+   "tokens": 33,
+   "truncated": false,
+   "answer": "Eesti keeles on sõna \"tütar\" omastav kääne ainsuses \"tütrega\".\n\nANSWER: tütrega"
+  },
+  {
+   "case": "et_tutar",
+   "ok": true,
+   "wall": 2.712648868560791,
+   "tokens": 76,
+   "truncated": false,
+   "answer": "). Selle omastav kääne ainsuses moodustatakse lisamisel lõppu \"-a\". Seega on tütre omastav kääne \"tütre\".\n\nANSWER: tütre"
+  },
+  {
+   "case": "et_inimene",
+   "ok": true,
+   "wall": 0.4183168411254883,
+   "tokens": 31,
+   "truncated": false,
+   "answer": "Sõna \"inimene\" omastav kääne mitmuses on \"inimeste\".\n\nANSWER: inimeste"
+  },
+  {
+   "case": "et_inimene",
+   "ok": true,
+   "wall": 2.595210313796997,
+   "tokens": 90,
+   "truncated": false,
+   "answer": ") in the plural for \"inimene\" is formed by adding the suffix -te to the stem, resulting in \"inimeste\".\n\nANSWER: inimeste"
+  },
+  {
+   "case": "et_inimene",
+   "ok": true,
+   "wall": 1.957179069519043,
+   "tokens": 46,
+   "truncated": false,
+   "answer": "on) in Estonian belongs to the second declension. The genitive plural form of \"inimene\" is \"inimeste\".\n\nANSWER: inimeste"
+  },
+  {
+   "case": "et_jalg",
+   "ok": false,
+   "wall": 2.173638343811035,
+   "tokens": 154,
+   "truncated": false,
+   "answer": "(nimetav), jalgade (omastav), jalgade (osastav)\n\nJah, mitmuse osastav kääne sõnast \"jalg\" on \"jalgade\".\n\nANSWER: jalgade"
+  },
+  {
+   "case": "et_jalg",
+   "ok": false,
+   "wall": 2.2400288581848145,
+   "tokens": 40,
+   "truncated": false,
+   "answer": "Sõna \"jalg\" tähendab jalga (body part). Selle osastav kääne mitmuses on \"jalgu\".\n\nANSWER: jalgudest"
+  },
+  {
+   "case": "et_jalg",
+   "ok": true,
+   "wall": 1.0487706661224365,
+   "tokens": 78,
+   "truncated": false,
+   "answer": "v kääne mitmuses moodustatakse lisamisel lõppu \"-i\". Seega on sõna \"jalg\" osastav kääne mitmuses \"jalgu\".\n\nANSWER: jalgu"
+  },
+  {
+   "case": "et_extract",
+   "ok": true,
+   "wall": 0.5973010063171387,
+   "tokens": 53,
+   "truncated": false,
+   "answer": "{\n  \"date\": \"2026-11-12\",\n  \"time\": \"18:30\",\n  \"city\": \"Tartu\",\n  \"amount_eur\": 25\n}"
+  },
+  {
+   "case": "et_extract",
+   "ok": true,
+   "wall": 1.8735105991363525,
+   "tokens": 53,
+   "truncated": false,
+   "answer": "{\n  \"date\": \"2026-11-12\",\n  \"time\": \"18:30\",\n  \"city\": \"Tartu\",\n  \"amount_eur\": 25\n}"
+  },
+  {
+   "case": "et_extract",
+   "ok": true,
+   "wall": 1.9762134552001953,
+   "tokens": 53,
+   "truncated": false,
+   "answer": "{\n  \"date\": \"2026-11-12\",\n  \"time\": \"18:30\",\n  \"city\": \"Tartu\",\n  \"amount_eur\": 25\n}"
+  },
+  {
+   "case": "et_reply",
+   "ok": true,
+   "wall": 0.21819090843200684,
+   "truncated": false,
+   "tokens": 10,
+   "answer": "Eesti pealinn on Tallinn."
+  },
+  {
+   "case": "et_reply",
+   "ok": true,
+   "wall": 1.5463180541992188,
+   "truncated": false,
+   "tokens": 10,
+   "answer": "Eesti pealinn on Tallinn."
+  },
+  {
+   "case": "et_reply",
+   "ok": true,
+   "wall": 0.18552541732788086,
+   "truncated": false,
+   "tokens": 10,
+   "answer": "Eesti pealinn on Tallinn."
+  },
+  {
+   "case": "et_number_words",
+   "ok": true,
+   "wall": 0.40525197982788086,
+   "truncated": false,
+   "tokens": 17,
+   "answer": "tuhat üheksasada kaheksakümmend seitse"
+  },
+  {
+   "case": "et_number_words",
+   "ok": true,
+   "wall": 1.725846290588379,
+   "truncated": false,
+   "tokens": 17,
+   "answer": "tuhat üheksasada kaheksakümmend seitse"
+  },
+  {
+   "case": "et_number_words",
+   "ok": true,
+   "wall": 1.8169431686401367,
+   "truncated": false,
+   "tokens": 17,
+   "answer": "tuhat üheksasada kaheksakümmend seitse"
+  },
+  {
+   "case": "et_summary",
+   "ok": true,
+   "wall": 0.7397723197937012,
+   "truncated": false,
+   "tokens": 49,
+   "answer": "Alibaba Qwen meeskond avaldas Apache 2.0 litsentsi all 27 miljardi parameetriga avatud mudeli, mille kontekst on 262 000 tokenit."
+  },
+  {
+   "case": "et_summary",
+   "ok": true,
+   "wall": 2.183100461959839,
+   "truncated": false,
+   "tokens": 53,
+   "answer": "Alibaba Qwen meeskond avaldas 27 miljardi parameetriga avatud mudeli, mille kontekstikaken on 262 000 silti Apache 2.0 litsentsi alusel."
+  },
+  {
+   "case": "et_summary",
+   "ok": true,
+   "wall": 2.0383687019348145,
+   "truncated": false,
+   "tokens": 40,
+   "answer": "Alibaba Qwen meeskond avaldas 27 miljardi parameetriga avatud mudeli, mille kontekst on 262 000 tokenit."
   }
  ]
 }

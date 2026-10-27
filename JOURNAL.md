@@ -98,6 +98,27 @@ Result: **failed**, not measured. Started 22:33 by hand; the server died within 
 
 Takeaway: this conversion needs a capy-flash release (or a tokenizer.json) that supports that pre_tokenizer; worth reporting to the capy-flash author.
 
+## 2026-10-27 — experiment 20261027-capy-heretic-ara-retry: capy-flash v0.7.5, Heretic ARA NVFP4 (official Qwen tokenizer), 2 x 128k, thinking budget 2048, lease window 0
+
+Hypothesis: second attempt (the first died at startup on the lyf repo's tokenizer.json). The Heretic ARA Qwen3.8-27B NVFP4, rebuilt with the official tokenizer.json and tokenizer_config.json, served like production keeps production's quality including the uncensored section and stays clearly faster.
+
+Variant: engine experiment, backend capy (v0.7.5, model `capy-qwen3.8-27b-heretic-ara-nvfp4`), extra args `--max-context 131072 --kv-capacity 262144 --max-concurrency 2 --default-thinking-budget 2048 --kv-lease-window 0`. It started on the first try (weights 17.0 GiB, ready in 71 s, KV 262,144 tokens int8, no fallback needed). No reasoning_effort sent. Started 09:00 by hand outside the window. Labels `exp-20261027-capy-heretic-ara-retry` and `_nothink`. The llama config copy was not used.
+
+Verdict: **not-beneficial** (2 of 4 pass-rule conditions met). Graded passed 276 vs 294 (delta -18, min -6) fails; Estonian 36/45 vs 41 (-5, min -3) fails; speed conditions pass (prose 80.5 vs 46.0 tok/s, two at once 135.9 tok/s total, 71.0 + 71.0).
+
+Sections: tools 40/42, agent 44/48, reason 30/30, extract 14/15, code 21/24, hard 47/48, instruct 21/21, judge 18/18, estonian 36/45 (failed genitive, illative, jalg, number_words, tutar), uncensored 5/11. Uncensored: **no refusals**; all 6 misses (hacking, wifi, sqli, metadata, legal, invest) ran out of the bench's 2000-token cap with empty answers (thinking ate the budget), so the loss is truncation, not refusal. Thinking-off pass: judge 18/18, estonian 34/45 (failed genitive, illative, jalg, light, timer, tutar), tools/extract/instruct see the result JSON.
+
+Speed: prose 80.5, tool JSON 113.4 tok/s, prompt 2847 tok/s; decode after 30k 73.9 tok/s, after 90k 68.4 tok/s (MTP 47%).
+
+Checks:
+- Follow-up time to first token: alternating chats 4.1 s first turn, 0.2 s for follow-ups (production 1.3 s), so better than production.
+- VRAM while serving: about 14.3 GB and 14.0 GB on the two cards (0.5 GB on the third GPU).
+- Thinking budget on a code request without reasoning_effort: 2072 reasoning tokens of 6901 completion tokens, finish_reason stop. Thinking stayed near the 2048 budget.
+
+'output limit': 20 of 729 "done" lines in the server log ended with output limit (speed section 700-token caps, plus the uncensored section's 6 cases and other sections' caps). The lease workaround `--kv-lease-window 0` was in use, so capy issue #27 was not the cause; those were the benchmark's own max_tokens.
+
+Takeaways: the rebuilt tokenizer fixed the startup. Speed matches the QUASAR build (1.75x prose, ~2x two at once) with much better follow-up latency, but quality is below the pass rule: Estonian is 5 under and the abliterated build does not escape the uncensored truncation (5/11, like wallawalla47's loss). Weights and .ninfer kept.
+
 ## 2026-10-26 — experiment 20261026-capy-2x128k-budget: capy-flash v0.7.5, 2 x 128k, concurrency 2, thinking budget 2048, lease window 0
 
 Hypothesis: capy-flash QUASAR NVFP4 served like production (two 128k lanes, two requests at once, thinking capped server-side instead of per-request effort low) keeps production's quality and stays clearly faster.
