@@ -32,7 +32,7 @@ def rules():
         f"Bash({sys.executable} {ROOT / 'pipeline' / 'candidates.py'} *)",
         f"Bash({sys.executable} {ROOT / 'pipeline' / 'experiments.py'} *)",
         "Bash(nvidia-smi*)", "Bash(curl -s 127.0.0.1:*)", "Bash(curl -s http://127.0.0.1:*)",
-        f"Bash(ln -sfn {prod} {serving}/secrets/*)", f"Bash(rm -r {models}/*)", "Bash(hf download *)",
+        f"Bash(ln -sfn {prod} {serving}/secrets/*)", "Bash(hf download *)",
         f"Bash(cd {build} && git pull && cmake --build build -j*)",
         f"Bash(docker stop {config.get('serving', 'vllm_container')})",
         "Bash(git status*)", "Bash(git diff*)", "Bash(git log*)", "Bash(git add *)", "Bash(git commit *)", "Bash(git push)",
@@ -42,7 +42,11 @@ def rules():
     ]
     prod_conf = a(serving / config.get("serving", "production_config"))
     deny = [f"Edit({prod_conf})", f"Write({prod_conf})", "Bash(sudo systemctl stop*)", "Bash(sudo systemctl disable*)",
-            "Bash(git push --force*)", "Bash(git push -f*)", "Bash(git commit --no-verify*)", "Bash(git commit -n*)"]
+            "Bash(git push --force*)", "Bash(git push -f*)", "Bash(git commit --no-verify*)", "Bash(git commit -n*)",
+            "Bash(rm *models/*)",
+            "Bash(rm -r*models*)",
+            "Bash(rm -rf*models*)",
+            "Bash(find *models* -delete*)"]
     return {"permissions": {"allow": allow, "deny": deny}}
 
 

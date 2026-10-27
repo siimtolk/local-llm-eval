@@ -110,8 +110,8 @@ not fit in VRAM is `skipped`.
     - `tested`: at least as good as production on graded runs (at most 3 fewer than production on
       the same suite), all uncensored cases answered, and clearly better on something (speed,
       context, vision, a usable thinking-off mode). It is worth a live trial. Keep the weights.
-    - `rejected`: otherwise. Delete its weights: `rm -r $MODELS/<model>`. Keep the config and
-      the results.
+    - `rejected`: otherwise. **Never delete weights** (the owner decides; ask in the report if disk is short).
+      Keep the weights, the config and the results.
 11. **Commit and push**, in small commits:
     - in `$EVAL`: `results/<label>.json` (and `_nothink`), `JOURNAL.md`, `README.md`. The
       pre-commit leak check must pass; never bypass it. Message:

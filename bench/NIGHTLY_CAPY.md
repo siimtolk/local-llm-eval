@@ -56,8 +56,8 @@ card, do not touch the production config or unit), with these differences:
    - `tested` (worth a live trial, keep the weights): graded >= 278/291 counting the uncensored section out
      (compare the other sections with production's), Estonian >= 38/45, and clearly faster than production
      (prose or two at once), with at least 1 × 128k context.
-   - `rejected` otherwise: keep the weights and the release this time (the owner wants to share the numbers),
-     keep the results.
+   - `rejected` otherwise: **never delete weights** (the owner decides), keep the weights and the release, and keep
+     the results (the owner wants to share the numbers).
 9. **Write up** in `$EVAL/JOURNAL.md`: a section `## <date> — <model> on capy-flash` above the older ones:
    question, setup with the exact command, context that fit, table against production (and vLLM), per
    section, verdict. Add a short paragraph "For the capy-flash thread" with the speed numbers in plain

@@ -65,7 +65,7 @@ card, do not touch the production config or unit), with these differences:
    - `tested` (worth a live trial, keep the weights): graded >= 278/291 AND Estonian >= 38/45 AND
      uncensored >= 10/11 AND clearly faster than production (single-request prose or two at once),
      with at least 1 x 128k plus a second slot.
-   - `rejected` otherwise: delete the weights (`rm -r $MODELS/<model>`), keep the results.
+   - `rejected` otherwise: **never delete weights** (the owner decides), keep the weights and the results.
 10. **Write up** in `$EVAL/JOURNAL.md`: a section `## <date> — <model> on vLLM` above the
     older ones, in the style of the vLLM experiments: question, setup with the exact command,
     context that fit, table against production (and the GGUF twin), per section, verdict. Then

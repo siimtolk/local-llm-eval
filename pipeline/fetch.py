@@ -197,7 +197,7 @@ def fetch_vllm(repo, c, dry, label="", gb=0, keep=None):
     if done:
         candidates.update(repo, status="downloaded")
     else:
-        shutil.rmtree(MODELS / model, ignore_errors=True)
+        # partial download stays on disk (hf resumes it); weights are never deleted automatically
         candidates.update(repo, status="pending", model="")
         print(f"{repo}: download failed, see logs/{model}-download.log", file=sys.stderr)
     return True
@@ -361,7 +361,7 @@ def main():
                 tested |= start_test(repo, not tested)
                 add_sibling(repo, c)
             else:
-                shutil.rmtree(MODELS / model, ignore_errors=True)
+                # partial download stays on disk (hf resumes it); weights are never deleted automatically
                 candidates.update(repo, status="pending", model="")
                 print(f"{repo}: download failed, see logs/{model}-download.log", file=sys.stderr)
         if dry:

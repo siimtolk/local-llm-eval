@@ -84,5 +84,8 @@ $EXPERIMENTS set <id> failed '<one-sentence reason>'   # when the variant could 
    `git push`. In `$SERVING`, commit `models.d/exp-<id>.conf.sh` (message
    `Config for experiment <id>`) and push; no weights, logs or secrets.
 
+**Never delete weights or converted artifacts** (`models/*`), whatever the verdict or the result:
+the owner decides. If disk is short, say so in the report. Nothing in this procedure removes them.
+
 If anything fails along the way, restore production first (step 6), then
 `$EXPERIMENTS set <id> failed '<one-sentence reason>'`.
