@@ -5,6 +5,29 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## 2026-10-27 — experiment 20261027-capy-rvn-nvfp4-b: capy-flash v0.7.5, RVN (Heretic ARA + 2 passes) BF16 -> NVFP4 variant B, 2 x 128k, thinking budget 1500, lease window 0
+
+Hypothesis: the RVN weights rebuilt locally for capy-flash (nvfp4_mse, A16Only, first/last 2 layers FP8, BF16-sourced MTP and vision) keep production's quality (passed closer to 294 than the lyf import's 276, Estonian >= 38, uncensored passing with budget 1500) and stay above x1.3 production speed.
+
+Variant: engine experiment, backend capy (v0.7.5, model `capy-qwen3.8-27b-rvn-nvfp4-b`, 17.7 GiB weights), extra args `--max-context 131072 --kv-capacity 262144 --max-concurrency 2 --default-thinking-budget 1500 --kv-lease-window 0`. It started on the first try (ready in 71 s, KV 262,144 tokens int8, no fallback to 196608, no A16Only/FP8 shape rejected). No reasoning_effort sent. Started 16:01 by hand outside the window. Labels `exp-20261027-capy-rvn-nvfp4-b` and `_nothink`. The llama config copy was not used.
+
+Verdict: `20261027-capy-rvn-nvfp4-b: beneficial (4/4 pass-rule conditions met)` (both limits met exactly at the edge). passed 288 vs 294 (delta -6, min -6); Estonian 38 vs 41 (-3, min -3); prose 80.1 vs 46.0 tok/s (x1.74); parallel 69.4 vs 38.2 (x1.82); code 22 vs 21; tool JSON 113.1 vs 65.5; long-prompt TTFT 23.7 s vs 24.8 s.
+
+Sections: tools 41/42, agent 48/48, reason 30/30, extract 14/15, code 22/24, hard 46/48, instruct 21/21, judge 18/18, estonian 38/45 (failed genitive, illative, jalg, number_words), uncensored 10/11 (only darkweb failed, and it ran out of tokens). Thinking-off pass: tools 39/42, extract 12/15, instruct 20/21, judge 18/18, estonian 30/45.
+
+Extras (the core bench run already includes them under `extra`; there is no baseline for the extras yet, `$BASELINE` has no `extra` key): robust 65/72, longagent 21/21, estonian_free 31/39, vision 17/18, replay 101/180, cron_replay 23/36, ctx 27/45. None skipped.
+
+Speed: prose 79.1, tool JSON 112.5 tok/s, prompt 1269 tok/s (the A16Only build prefills about half as fast as the lyf import's 2847); two at once 131.4 tok/s total (67.7 + 71.1); decode after 30k 77.9 tok/s, after 90k 73.2 tok/s (MTP 53-55%).
+
+Checks:
+- Follow-up time to first token: alternating chats 9.8 s first turn and 9.9 s for follow-ups (production 1.3 s), so much slower than production in the bench's 13k-token alternating test (prefill-bound; two of the four requests had no cache hit). 30k prompt TTFT 23.7 s, 90k 86.5 s.
+- VRAM while serving: 14.6 GB and 14.3 GB on the two cards (0.26 GB on the third GPU).
+- Thinking budget on a code request without reasoning_effort: 1524 reasoning tokens of 7314 completion tokens, finish stop. Thinking stayed at the 1500 budget (the 2048 in the check text is not the configured value).
+- 'output limit': 17 of 1647 "done" lines: 14 in the speed section (700/600/500/60-token caps), 3 in the uncensored section (2000-token cap; two of them had used all 1500 thinking tokens, one only 210). Lease workaround `--kv-lease-window 0` was in use, so capy issue #27 was not the cause.
+- Uncensored: no refusals; the single miss (darkweb) is a truncation.
+
+Takeaways: the locally quantized RVN NVFP4 build is far better than the lyf import (Estonian 38 vs 36, uncensored 10/11 vs 5/11, thinking budget 1500 avoids the truncation) at x1.7 prose and about x1.9 two-at-once speed. Weak spots: prefill (1.27k tok/s, long-prompt and follow-up latency worse than production) and the replay/ctx extras. Weights and .ninfer kept.
+
 ## 2026-10-27 — experiment 20261027-batch-4096: Logical batch 4096 with ubatch 1024
 
 Hypothesis: larger batches may speed up long-prompt ingestion. Variant: `--batch-size 4096 --ubatch-size 1024` appended to production's args; production build (b11707), same weights, port 8085, 2 slots x 131072. The weights were reached through a symlink `logs/exp-models/exp-20261027-batch-4096` and `MODELS_DIR` set in the experiment config, because `serve` looks for weights under `models/<config name>` (the first start failed on that before any model was loaded).
