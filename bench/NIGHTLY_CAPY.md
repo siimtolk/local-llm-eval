@@ -29,6 +29,8 @@ card, do not touch the production config or unit), with these differences:
 ## Steps
 
 1. Check the files: `ls -la $MODELS/<model>/`, `artifact-manifest.json`, the model card (facts only).
+   If the model has no `.ninfer` file, do not convert it yourself (no installs, no downloads in a test run): record the
+   candidate `failed` with that reason. How weights are built, by hand, is in `$SERVING/docs/capy-flash-weight-conversion.md`.
 2. **Stop production:** `$STOP_PRODUCTION` (as its own command), as in NIGHTLY.md step 4.
 3. **Serve:** `$SERVE start <model> --backend capy --port $TEST_PORT`. Wait for
    `$SERVE health <model> --backend capy --port $TEST_PORT` to exit 0 (first start: allow 10 min). On
