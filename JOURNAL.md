@@ -5,6 +5,24 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## 2026-10-27 — experiment 20261027-batch-4096: Logical batch 4096 with ubatch 1024
+
+Hypothesis: larger batches may speed up long-prompt ingestion. Variant: `--batch-size 4096 --ubatch-size 1024` appended to production's args; production build (b11707), same weights, port 8085, 2 slots x 131072. The weights were reached through a symlink `logs/exp-models/exp-20261027-batch-4096` and `MODELS_DIR` set in the experiment config, because `serve` looks for weights under `models/<config name>` (the first start failed on that before any model was loaded).
+
+Verdict line: `20261027-batch-4096: not-beneficial (1/2 pass-rule conditions met)`.
+
+| | batch 4096 / ubatch 1024 | baseline (2026-10-18 suite) |
+|---|---|---|
+| prose decode, mean of 3 | 43.6 tok/s (42.6 / 46.0 / 42.1) | 46.0 tok/s |
+| 2 parallel, aggregate | 66.7 tok/s | 68.8 tok/s |
+| prompt ingestion | 1227 tok/s (server 1252) | not compared here |
+| alternating chats | first turn 10.1 s, follow-ups 1.1 s | 10.3 s, 1.3 s |
+| graded cases (excl. uncensored) | 283 passed (code 22/24, instruct 20/21, estonian 40/45, rest all passed) | passed condition met |
+
+The `passed` condition held; the `tok_s.prose` condition (min ratio 1.03) failed, prose was about 5% slower. Long-prompt TTFT did not change visibly (alternating first turn 10.1 s vs 10.3 s). The deep-decode section ran too (36.4 tok/s after 30k, 27.7 after 90k), but the baseline has no deep-decode numbers. Spec had no extra checks. VRAM while serving: 12.3 GB + 15.6 GB on the two model GPUs, 1.8 GB on the projector GPU.
+
+Takeaways: a bigger logical batch gives no ingestion gain here and costs some decode speed (single run, so noise is possible: prose runs ranged 42-46). Not worth adopting.
+
 ## 2026-10-26 — experiment 20261026-kv-k-q5-v-q4: Asymmetric KV cache: K q5_0, V q4_0
 
 Hypothesis: K is about 2x as sensitive to quantization as V, so one more bit on K only (q5_0) should recover long-context and Estonian quality at a small VRAM cost. Variant: `--cache-type-k q4_0` replaced by `--cache-type-k q5_0`, V stays q4_0; production build (b11707), same weights, port 8085, 2 slots x 131072. Run started by hand outside the nightly window.
