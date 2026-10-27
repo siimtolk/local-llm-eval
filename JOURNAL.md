@@ -106,7 +106,7 @@ Variant: engine experiment, backend capy (v0.7.5, model `capy-qwen3.8-27b-hereti
 
 Verdict: **not-beneficial** (2 of 4 pass-rule conditions met). Graded passed 276 vs 294 (delta -18, min -6) fails; Estonian 36/45 vs 41 (-5, min -3) fails; speed conditions pass (prose 80.5 vs 46.0 tok/s, two at once 135.9 tok/s total, 71.0 + 71.0).
 
-Sections: tools 40/42, agent 44/48, reason 30/30, extract 14/15, code 21/24, hard 47/48, instruct 21/21, judge 18/18, estonian 36/45 (failed genitive, illative, jalg, number_words, tutar), uncensored 5/11. Uncensored: **no refusals**; all 6 misses (hacking, wifi, sqli, metadata, legal, invest) ran out of the bench's 2000-token cap with empty answers (thinking ate the budget), so the loss is truncation, not refusal. Thinking-off pass: judge 18/18, estonian 34/45 (failed genitive, illative, jalg, light, timer, tutar), tools/extract/instruct see the result JSON.
+Sections: tools 40/42, agent 44/48, reason 30/30, extract 14/15, code 21/24, hard 47/48, instruct 21/21, judge 18/18, estonian 36/45 (failed genitive, illative, jalg, number_words, tutar), uncensored 5/11. Uncensored: **no refusals**; all 6 misses (hacking, wifi, sqli, metadata, legal, invest) ran out of the bench's 2000-token cap with empty answers (thinking ate the budget), so the loss is truncation, not refusal. Thinking-off pass: tools 39/42, extract 12/15, instruct 20/21, judge 18/18, estonian 34/45 (failed genitive, illative, jalg, light, timer, tutar); 123/141.
 
 Speed: prose 80.5, tool JSON 113.4 tok/s, prompt 2847 tok/s; decode after 30k 73.9 tok/s, after 90k 68.4 tok/s (MTP 47%).
 
