@@ -179,12 +179,15 @@ def main():
     only, t0 = (args.only or "speed," + ",".join(sections)).split(","), time.time()
     out = Path(args.results_dir) / f"{args.label}.json"
     res = json.loads(out.read_text()) if out.exists() else {}
-    res.update({"label": args.label, "reps": args.reps, "temperature": args.temperature, "request_extra": extra,
-                "started": time.strftime("%F %T")})
+    res.update({"label": args.label, "reps": args.reps, "temperature": args.temperature, "request_extra": extra})
+    res.setdefault("started", time.strftime("%F %T"))
     if hasattr(modules[0], "SUITE"):  # a run of extra sections alone must not relabel the core suite of this file
         res.update({"cases": Path(files[0]).name, "suite": modules[0].SUITE})
     elif "suite" not in res:
         res.update({"cases": Path(files[0]).name, "suite": None})
+    # the board dates a setup by `started`: only a speed or core run moves it, extra sections alone do not
+    if "speed" in only or (hasattr(modules[0], "SUITE") and any(s in modules[0].SECTIONS for s in only)):
+        res["started"] = time.strftime("%F %T")
     total0 = res.get("total_seconds", 0)
 
     def save():
