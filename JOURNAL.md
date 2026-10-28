@@ -5,6 +5,27 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## 2026-10-28 — experiment 20261027-capy-rvn-nvfp4-c: capy-flash v0.7.5, RVN BF16 -> NVFP4 variant C (official mix: MLP NVFP4, attention/GDN FP8), 2 x 128k, thinking budget 1500
+
+Hypothesis: production's RVN weights rebuilt for capy-flash as variant C (only the MLP of layers < 56 in NVFP4, attention, GDN and the last 8 layers' MLP in FP8) keep production's quality (the ceiling of the three NVFP4 rebuilds) at a speed above 1.3x.
+
+Variant: engine experiment, backend capy (v0.7.5, model `capy-qwen3.8-27b-rvn-nvfp4-c`, 20.9 GiB of weights on load), extra args `--max-context 131072 --kv-capacity 262144 --max-concurrency 2 --default-thinking-budget 1500 --kv-lease-window 0`. First start FAILED: "requested Engine runtime reservation requires 5489202945 bytes, but only 5209915392 bytes are available after weights" (the FP8 projections make the weights bigger than the 17.7 GB file size suggests). Retry with `--kv-capacity 196608` (as the spec allowed) started: KV 196,608 tokens int8, runtime 4.02 GiB, free 838 MiB. So the result is NOT at 262,144 KV. No reasoning_effort sent. Started 19:26 by hand outside the window. Labels `exp-20261027-capy-rvn-nvfp4-c` and `_nothink`. The llama config copy was not used. The sanity chat, tool call and thinking-off request all worked.
+
+Verdict: `beneficial (4/4 pass-rule conditions met)`. Core sections: tools 41/42, agent 47/48, reason 30/30, extract 13/15, code 22/24, hard 47/48, instruct 20/21, judge 18/18, estonian 41/45 (failed genitive, illative, jalg; production 41), uncensored 11/11 (290 core vs 294 production, delta -4, min -6). Thinking-off pass: tools 39/42, extract 12/15, instruct 18/21, judge 18/18, estonian 33/45 (production's thinking-off total is 113/141).
+
+Speed: prose 71.7, tool JSON 101.6 tok/s, prompt 1456 tok/s; two at once 114.3 tok/s total (58.3 + 63.1); decode after 30k 64.8 tok/s (MTP 46%), after 90k 66.7 tok/s (MTP 55%). Slower than variant A/lyf (prose 80.5) as expected from the FP8 projections.
+
+Extras (baseline = production's extras from 20261027-extras-production): robust 66/72 (62), longagent 19/21 (20), estonian_free 32/39 (27), vision 18/18 (18), replay 103/180 (107), cron_replay 19/36 (21), ctx 25/45 (32). Nothing skipped. The bench took 12,464 s (about 3.5 h), well over the 110 min guide, because replay (3922 s) and cron_replay/ctx are slow; it was left to finish since there was time before 06:00.
+
+Checks:
+- Follow-up time to first token: alternating chats 8.4 s first turn, 4.4 s average for follow-ups (two of the four follow-ups 8.5 s, two 0.25 s), production 1.3 s, so worse than production. 30k prompt TTFT 20.7 s.
+- VRAM while serving: 15.1 GB and 14.8 GB on the two cards (0.3-0.5 GB on the third).
+- Thinking budget on a code request without reasoning_effort: 1524 reasoning tokens (budget 1500), finish_reason stop, 7998 completion tokens in total. Thinking stayed at the budget.
+- 'output limit': 15 of 1634 "done" lines. 13 in the speed/load sections (700, 500, 600 and 60-token caps), 1 in uncensored (the 2000-token cap, 1 out-of-tokens case, but still passed 11/11), 1 in cron_replay (6000-token cap). None in the other sections. `--kv-lease-window 0` was in use (capy issue #27 workaround).
+- Uncensored: 11/11, no refusals.
+
+Takeaways: variant C is the best-quality NVFP4 rebuild so far (290 vs 294, Estonian equal, uncensored full) and 1.56x prose / 1.85x two-at-once. But it needs KV 196,608 instead of 262,144 (2 x 128k does not fit), follow-ups are slower than production, and extras are mixed (estonian_free better, ctx/cron_replay a bit worse; replay is noisy). Production unchanged. Weights and .ninfer kept.
+
 ## 2026-10-28 — experiment 20261027-extras-production: Extra bench sections on production (llama.cpp RVN IQ4_XS): the baseline for every later extras run
 
 Hypothesis: measurement only. Production has no results for the extra sections, so no later experiment can be compared on them.
