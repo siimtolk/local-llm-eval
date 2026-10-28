@@ -33,6 +33,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from results_table import sections  # noqa: E402
 
 NAMES = Path(__file__).resolve().parent / "board_names.json"
+EXTRAS_FOR = Path(__file__).resolve().parent / "board_extras.json"  # {extras-only result label: core result label it belongs to}
 NOT_GRADED = {"uncensored"}
 EXTRA_SECTIONS = ("estonian_free", "vision", "robust", "longagent")  # result key "extra": the public, synthetic sections
 TRAFFIC_SECTIONS = ("replay", "cron_replay", "ctx")                  # result key "own_traffic": built from the owner's own agent history
@@ -170,10 +171,22 @@ def depth_runs(results_dir):
     return {k: v[1] for k, v in best.items()}
 
 
+def merge_extras(res, extras_path):
+    """res with the extra / own_traffic sections of an extras-only run added; sections res already has stay."""
+    if not extras_path.exists():
+        return res
+    ex = json.loads(extras_path.read_text())
+    res = dict(res)
+    for key in ("extra", "own_traffic", "section_versions"):
+        res[key] = {**(ex.get(key) or {}), **(res.get(key) or {})}
+    return res
+
+
 def collect(results_dir, baseline, confs_dir=None, engine_titles=None):
     """engine_titles: {result label: title} of the engine experiments, the only `exp-` results shown."""
     engine_titles = engine_titles or {}
     names = json.loads(NAMES.read_text()) if NAMES.exists() else {}
+    extras_for = json.loads(EXTRAS_FOR.read_text()) if EXTRAS_FOR.exists() else {}
     urls = weights_urls(confs_dir)
     depth = depth_runs(results_dir)
     runs = []
@@ -184,6 +197,8 @@ def collect(results_dir, baseline, confs_dir=None, engine_titles=None):
         res = json.loads(path.read_text())
         if not isinstance(res, dict) or not res.get("suite"):
             continue
+        for src in [k for k, v in extras_for.items() if v == path.stem]:  # extras-only runs filed under this setup
+            res = merge_extras(res, results_dir / f"{src}.json")
         ok, n = totals(res, NOT_GRADED)  # graded incl. Estonian, for the "full run" test
         runs.append((path, res, n))
     if not runs:
