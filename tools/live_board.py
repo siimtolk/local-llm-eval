@@ -16,7 +16,7 @@ vision, robust, longagent under the result's "extra" key; replay, cron_replay, c
 their own columns and never count in that percentage; a setup that ran them also gets a second total, graded_all / pct_all.
 
 Display names and kinds come from tools/board_names.json (key -> {name, kind}); a setup without an
-entry gets a name made from its label. The blog repo is `[board] blog_repo` in local.toml.
+entry gets a name made from its label. An extras-only experiment (see extras_targets) is merged into the latest earlier run of the same model and effort. The blog repo is `[board] blog_repo` in local.toml.
 """
 import argparse
 import json
@@ -33,7 +33,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from results_table import sections  # noqa: E402
 
 NAMES = Path(__file__).resolve().parent / "board_names.json"
-EXTRAS_FOR = Path(__file__).resolve().parent / "board_extras.json"  # {extras-only result label: core result label it belongs to}
+EXTRAS_FOR = Path(__file__).resolve().parent / "board_extras.json"  # manual override of extras_targets(): {extras-only result label: core result label}
 NOT_GRADED = {"uncensored"}
 EXTRA_SECTIONS = ("estonian_free", "vision", "robust", "longagent")  # result key "extra": the public, synthetic sections
 TRAFFIC_SECTIONS = ("replay", "cron_replay", "ctx")                  # result key "own_traffic": built from the owner's own agent history
@@ -182,11 +182,11 @@ def merge_extras(res, extras_path):
     return res
 
 
-def collect(results_dir, baseline, confs_dir=None, engine_titles=None):
+def collect(results_dir, baseline, confs_dir=None, engine_titles=None, extras_for=None):
     """engine_titles: {result label: title} of the engine experiments, the only `exp-` results shown."""
     engine_titles = engine_titles or {}
     names = json.loads(NAMES.read_text()) if NAMES.exists() else {}
-    extras_for = json.loads(EXTRAS_FOR.read_text()) if EXTRAS_FOR.exists() else {}
+    extras_for = {**(extras_for or {}), **(json.loads(EXTRAS_FOR.read_text()) if EXTRAS_FOR.exists() else {})}
     urls = weights_urls(confs_dir)
     depth = depth_runs(results_dir)
     runs = []
@@ -292,10 +292,48 @@ def engine_experiment_titles():
     return {f"exp-{eid}": e["title"] for eid, e in data.items() if e.get("type") == "engine" and e.get("title")}
 
 
+def extras_targets(results_dir):
+    """{extras-only result label: core result label} for the extras-only experiments (EXTRAS ONLY in their notes):
+    the latest full run of the same served model (`Serve model name <slug>` in the notes), with the same reasoning
+    effort (a request_extra reasoning_effort of low matches `efflow` files, none matches files without `eff`).
+    board_extras.json overrides this. An experiment with no earlier run of its model stays off the board."""
+    import experiments
+    try:
+        data = json.loads(experiments.store_path().read_text())["experiments"]
+    except (OSError, ValueError, KeyError):
+        return {}
+    out = {}
+    for eid, e in data.items():
+        v = e.get("variant") or {}
+        notes = v.get("notes") or ""
+        slug = re.search(r"Serve model name (\S+?)[ ,;(]", notes)
+        label = f"exp-{eid}"
+        if "EXTRAS ONLY" not in notes or not slug or not (results_dir / f"{label}.json").exists():
+            continue
+        effort = (v.get("request_extra") or {}).get("reasoning_effort")
+        cands = []
+        for path in results_dir.glob(f"{slug.group(1)}_*.json"):
+            if path.stem.endswith("_nothink"):
+                continue
+            tail = path.stem.rsplit("_", 1)[-1]
+            if effort == "low" and tail != "efflow" or effort is None and tail.startswith("eff"):
+                continue
+            try:
+                res = json.loads(path.read_text())
+            except ValueError:
+                continue
+            if isinstance(res, dict) and res.get("suite") and sections(res):
+                cands.append((res.get("started") or "", path.stem))
+        if cands:
+            out[label] = max(cands)[1]
+    return out
+
+
 def build():
     import config
     data = collect(config.path("results"), config.get("production", "baseline"),
-                   config.path("model_configs", config.serving()), engine_experiment_titles())
+                   config.path("model_configs", config.serving()), engine_experiment_titles(),
+                   extras_targets(config.path("results")))
     if data is None:
         sys.exit("no results")
     return data
