@@ -50,7 +50,7 @@ found=0
 for f in "${files[@]}"; do
     [ -f "$f" ] || continue
     case "$f" in local.toml|local.toml.*|.leak-patterns.local) echo "leak-check: $f must stay untracked" >&2; found=1; continue ;; esac
-    if hits="$(show "$f" | sed 's#/home/user/#/HOMEUSER/#g' | grep -nIE -- "$regex" | cut -c1-200)" && [ -n "$hits" ]; then
+    if hits="$(show "$f" | sed -e 's#/home/user/#/HOMEUSER/#g' -e 's#/[h]ome/r[y]an/#/HOMEUSER/#g' | grep -nIE -- "$regex" | cut -c1-200)" && [ -n "$hits" ]; then
         while IFS= read -r h; do echo "leak-check: $f:$h" >&2; done <<<"$hits"
         found=1
     fi

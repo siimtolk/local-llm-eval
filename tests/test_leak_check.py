@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parent.parent
 LEAK_CHECK = ROOT / "tools" / "leak_check.sh"
 # Built at runtime so this file does not trip the leak check itself.
 OTHER_HOME = "/" + "home/alice/x"
+FIXTURE_HOME = "/" + "home/ryan/x"
 
 
 def _git(args, cwd):
@@ -68,6 +69,45 @@ class TestLeakCheck(unittest.TestCase):
             )
 
             # 2. A file with another home directory must be flagged.
+            (root / "other.txt").write_text(f"data in {OTHER_HOME}\n", encoding="utf-8")
+            _git(["add", "other.txt"], root)
+            bad = subprocess.run(
+                ["bash", "tools/leak_check.sh"],
+                cwd=root,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            self.assertEqual(
+                bad.returncode,
+                1,
+                f"{OTHER_HOME} should be flagged; rc={bad.returncode}\n"
+                f"{bad.stdout}\n{bad.stderr}",
+            )
+
+    def test_fixture_home_ignored(self):
+        with tempfile.TemporaryDirectory(prefix="lle-test-leakcheck-") as tmp:
+            root = Path(tmp)
+            _new_repo(root)
+
+            # 1. A file with only the replay fixture home path must pass.
+            (root / "fixture.txt").write_text(f"cd {FIXTURE_HOME} && run\n", encoding="utf-8")
+            _git(["add", "fixture.txt"], root)
+            ok = subprocess.run(
+                ["bash", "tools/leak_check.sh"],
+                cwd=root,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            self.assertEqual(
+                ok.returncode,
+                0,
+                f"the replay fixture home path should be ignored; rc={ok.returncode}\n"
+                f"{ok.stdout}\n{ok.stderr}",
+            )
+
+            # 2. A file with another home directory must still be flagged.
             (root / "other.txt").write_text(f"data in {OTHER_HOME}\n", encoding="utf-8")
             _git(["add", "other.txt"], root)
             bad = subprocess.run(
