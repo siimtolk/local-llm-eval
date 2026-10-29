@@ -46,6 +46,19 @@ else
     show() { git show ":$1"; }
 fi
 
+# Known fictional fixture users (tools/fixture_users.txt) are rewritten to /home/user/ in staged results,
+# so a model echoing a test prompt's path does not block a commit. Any other path still blocks.
+if [ "${1:-}" != "--all" ] && [ -f tools/fixture_users.txt ]; then
+    names="$(grep -vE '^\s*(#|$)' tools/fixture_users.txt | paste -sd'|')"
+    if [ -n "$names" ]; then
+        while IFS= read -r f; do
+            [ -f "$f" ] && grep -qE "/home/($names)/" "$f" || continue
+            sed -E -i "s#/home/($names)/#/home/user/#g" "$f" && git add -- "$f"
+            echo "leak-check: scrubbed fixture paths in $f" >&2
+        done < <(git diff --cached --name-only --diff-filter=ACMR -- 'results/*.json')
+    fi
+fi
+
 found=0
 for f in "${files[@]}"; do
     [ -f "$f" ] || continue
