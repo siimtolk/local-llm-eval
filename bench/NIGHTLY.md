@@ -79,7 +79,7 @@ not fit in VRAM is `skipped`.
    for example `<quant>` = `q4km`, `<spec>` = `mtp` or `nospec`. This is the full suite as the
    everyday assistant uses the model (the server's default reasoning): 97 graded cases x 3
    (core suite 2026-10-18, incl. a ~105k-token prompt), then the extra sections (`cases_v2.py`: robust, longagent,
-   estonian_free, vision; `cases_private.py`: replay, cron_replay, ctx; they land under `extra` and never change the
+   estonian_free; `cases_private.py`: replay, cron_replay, ctx; they land under `extra` and never change the
    core totals; a section the server cannot run prints `skipped`, say which), plus speed, two requests at once, two
    alternating chats and decode speed after ~30k and ~90k tokens of context, 45–70 min for the core, more for the extra sections (they run last, so a cut-off loses only them).
    Then the everyday sections with thinking off, under the same label plus `_nothink`:

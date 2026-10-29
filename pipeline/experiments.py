@@ -60,7 +60,7 @@ CATEGORIES = ("tools", "agent", "reason", "extract", "code", "hard", "instruct",
 SPEED_TESTS = ("prose", "tool_json", "long_prompt", "parallel", "alternating", "deep_decode")
 # bench/cases_v2.py sections are stored under the result's "extra" key, bench/cases_private.py sections (your own traffic)
 # under "own_traffic"; both stay outside the core totals
-EXTRA_SECTIONS = ("robust", "longagent", "estonian_free", "vision")
+EXTRA_SECTIONS = ("robust", "longagent", "estonian_free")
 TRAFFIC_SECTIONS = ("replay", "cron_replay", "ctx")
 KNOWN_METRICS = ({"passed"} | {f"passed.{c}" for c in CATEGORIES} | {f"extra.{s}" for s in EXTRA_SECTIONS}
                  | {f"own_traffic.{s}" for s in TRAFFIC_SECTIONS}

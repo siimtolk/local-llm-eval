@@ -110,10 +110,10 @@ class TestPure(Base):
 
     def test_extra_sections_are_metrics_but_not_in_passed(self):
         r = result()
-        r["extra"] = {"robust": [{"case": "a", "ok": True}, {"case": "b", "ok": False}], "vision": []}
+        r["extra"] = {"robust": [{"case": "a", "ok": True}, {"case": "b", "ok": False}], "longagent": []}
         m = experiments.metrics(r)
         self.assertEqual(m["extra.robust"], 1)
-        self.assertNotIn("extra.vision", m)
+        self.assertNotIn("extra.longagent", m)
         self.assertEqual(m["passed"], experiments.metrics(result())["passed"])
         only = experiments.metrics({"suite": "s", "extra": {"longagent": [{"case": "a", "ok": True}]}})
         self.assertEqual(only, {"extra.longagent": 1})  # an extras-only run has no core "passed"

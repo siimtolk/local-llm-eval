@@ -134,13 +134,13 @@ repo, e.g. one in another container, can queue poll votes in a file for `candida
 ## Extra sections: agent robustness and your own traffic
 
 The core suite (`bench/cases.py`) is frozen, so every result already measured stays comparable. Newer sections live
-next to it and are stored under each result file's `extra` key (synthetic: robust, longagent, estonian_free, vision) or `own_traffic` key (built from your agent's real history: replay, cron_replay, ctx), so the headline totals and the live board do not
+next to it and are stored under each result file's `extra` key (synthetic: robust, longagent, estonian_free) or `own_traffic` key (built from your agent's real history: replay, cron_replay, ctx), so the headline totals and the live board do not
 change. Each has its own version in `SECTION_VERSIONS`. They run by default after the core suite; `--cases bench/cases.py` runs the core alone.
 
 ```
 python3 bench/bench.py --label my-model                                                  # core + extra sections (the default)
 python3 bench/bench.py --label my-model --cases bench/cases.py                           # the core suite alone
-python3 bench/bench.py --label my-model --only robust,longagent,estonian_free,vision     # one section group
+python3 bench/bench.py --label my-model --only robust,longagent,estonian_free     # one section group
 ```
 
 | Section | What it tests | Graded by |
@@ -148,7 +148,6 @@ python3 bench/bench.py --label my-model --only robust,longagent,estonian_free,vi
 | `robust` | Prompt injection (web page, tool field, file, mail, an exfiltration attempt), tool errors and retries, huge or truncated tool output, one tool among ~25 similar ones, destructive commands (look first, no force-push, ask what "old" means) and two over-correction controls | Calls made and the final answer |
 | `longagent` | 15-30 call tasks in a real `bubblewrap` shell: fix bugs, trace a config value, rename across files, read gzip logs, find a commit with `git log -S`, leave `vendor/` alone, a bulk edit | The files at the end, by hidden tests |
 | `estonian_free` | Free-form Estonian: chat, translation both ways, e-mail register, proofreading, English tool results answered in Estonian | [estonian-mcp](https://github.com/silly-geese/estonian-mcp) spelling, punctuation and compound checks, plus required facts. Skipped when it is not reachable |
-| `vision` | Generated images: text, counting, a chart, a dialog, a table, an Estonian sign | Exact answer. Skipped when the server has no vision |
 | `replay`, `cron_replay`, `ctx` | Your own agent transcripts (see below) | Next step agrees with the one that worked; the job's own output contract; the cost of a real ~15k-token prefix |
 
 The last three read fixtures from `[bench] private_dir` (or `$BENCH_PRIVATE_DIR`). The fixtures are real transcripts and

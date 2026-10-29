@@ -4,7 +4,7 @@
     bench/bench.py --label NAME [--base-url URL] [--api-key-file F] [--results-dir D]
                    [--reps 3] [--temperature T] [--thinking on|off] [--reasoning-effort E] [--cases FILE[,FILE]]
                    [--only speed,tools,agent,reason,extract,code,hard,instruct,judge,estonian,uncensored]
-                   (extra sections: --cases bench/cases_v2.py[,bench/cases_private.py] --only robust,longagent,estonian_free,vision,replay,cron_replay,ctx)
+                   (extra sections: --cases bench/cases_v2.py[,bench/cases_private.py] --only robust,longagent,estonian_free,replay,cron_replay,ctx)
 
 Speed is timed on this side from streamed responses, so it works with any server; llama-server's
 own timings are stored next to it when present. Quality cases (bench/cases.py, or your own file
@@ -226,7 +226,7 @@ def main():
         if name not in only:
             continue
         rows = section(client, args.reps)
-        if not rows:  # the section decided it does not apply (no vision, no private fixtures, no Estonian checker)
+        if not rows:  # the section decided it does not apply (no private fixtures, no Estonian checker)
             print(f"{name:10} skipped (not applicable here)", flush=True)
             continue
         stored = [{k: v for k, v in r.items() if k not in QUOTING} for r in rows] if name in private else rows

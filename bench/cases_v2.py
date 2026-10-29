@@ -1,7 +1,7 @@
 """Extra graded sections for bench/bench.py, added next to the core suite in cases.py (which stays unchanged,
 so results already measured stay comparable). Run them with
 
-    bench/bench.py --label NAME --cases bench/cases_v2.py [--only robust,longagent,estonian_free,vision]
+    bench/bench.py --label NAME --cases bench/cases_v2.py [--only robust,longagent,estonian_free]
 
 Their rows are stored under the result file's "extra" key, so the core suite's totals are unchanged. Each
 section has its own version (SECTION_VERSIONS): a change to a case or its grader bumps that section only.
@@ -9,14 +9,11 @@ section has its own version (SECTION_VERSIONS): a change to a case or its grader
   robust         prompt injection, tool errors, huge tool output, many similar tools, destructive commands
   longagent      15-30 call tasks in a real sandboxed shell, graded by the end state of the files
   estonian_free  free-form Estonian, graded with the estonian-mcp checkers (skipped when it is not reachable)
-  vision         generated images: text, counting, charts, screenshots (skipped when the server has no vision)
 
 Everything here is synthetic. Sections built from real traffic are in cases_private.py.
 """
-import base64
 import gzip
 import hashlib
-import io
 import json
 import os
 import random
@@ -32,7 +29,7 @@ from harness import fn, run_tools
 import cases as base
 from cases import FakeFS, has, inc, eq
 
-SECTION_VERSIONS = {"robust": "v1", "longagent": "v1", "estonian_free": "v1", "vision": "v1"}
+SECTION_VERSIONS = {"robust": "v1", "longagent": "v1", "estonian_free": "v1"}
 
 
 def rows_for(client, reps, table, max_turns=8):
@@ -775,131 +772,5 @@ def et_tool_rows(client, reps, mcp):
     return rows
 
 
-# ================================================================ vision
-
-def _font(size):
-    from PIL import ImageFont
-    for p in ("/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf", "/usr/share/fonts/dejavu/DejaVuSans.ttf",
-              "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"):
-        if os.path.exists(p):
-            return ImageFont.truetype(p, size)
-    return ImageFont.load_default(size)
-
-
-def _png(img):
-    buf = io.BytesIO()
-    img.save(buf, "PNG")
-    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
-
-
-def vis_invoice():
-    from PIL import Image, ImageDraw
-    img = Image.new("RGB", (640, 260), "white")
-    d = ImageDraw.Draw(img)
-    d.text((24, 24), "INVOICE", fill="black", font=_font(40))
-    d.text((24, 90), "No. 2026-1043", fill="black", font=_font(30))
-    d.text((24, 140), "Total due: 149.50 EUR", fill="black", font=_font(30))
-    d.text((24, 190), "Due date: 14 November 2026", fill="black", font=_font(24))
-    return img, "What is the invoice number?", lambda t: "2026-1043" in t
-
-
-def vis_count():
-    from PIL import Image, ImageDraw
-    rng = random.Random(3)
-    img = Image.new("RGB", (640, 420), "white")
-    d = ImageDraw.Draw(img)
-    spots = []
-    def place():
-        while True:
-            x, y = rng.randint(40, 600), rng.randint(40, 380)
-            if all((x - a) ** 2 + (y - b) ** 2 > 60 ** 2 for a, b in spots):
-                spots.append((x, y))
-                return x, y
-    for _ in range(7):
-        x, y = place()
-        d.ellipse((x - 22, y - 22, x + 22, y + 22), fill="red")
-    for _ in range(4):
-        x, y = place()
-        d.rectangle((x - 22, y - 22, x + 22, y + 22), fill="blue")
-    return img, "How many red circles are in the image? Answer with the number only.", lambda t: bool(re.search(r"\b(7|seven)\b", t)) and not re.search(r"\b(11|8|6)\b", t)
-
-
-def vis_chart():
-    from PIL import Image, ImageDraw
-    img = Image.new("RGB", (640, 400), "white")
-    d = ImageDraw.Draw(img)
-    data = [("Mon", 12), ("Tue", 31), ("Wed", 18), ("Thu", 24)]
-    d.line((60, 340, 600, 340), fill="black", width=2)
-    for i, (label, v) in enumerate(data):
-        x = 90 + i * 130
-        d.rectangle((x, 340 - v * 8, x + 80, 340), fill=(60, 120, 200))
-        d.text((x + 20, 350), label, fill="black", font=_font(22))
-        d.text((x + 22, 340 - v * 8 - 30), str(v), fill="black", font=_font(24))
-    return img, "Which day has the highest bar, and what is its value?", lambda t: "tue" in t.lower() and "31" in t
-
-
-def vis_dialog():
-    from PIL import Image, ImageDraw
-    img = Image.new("RGB", (640, 300), (230, 230, 235))
-    d = ImageDraw.Draw(img)
-    d.rectangle((60, 40, 580, 260), fill="white", outline="black", width=2)
-    d.text((80, 55), "Warning", fill=(180, 0, 0), font=_font(28))
-    d.text((80, 105), "Disk almost full: 97% used on /dev/sda2", fill="black", font=_font(22))
-    d.rectangle((300, 190, 400, 235), fill=(200, 200, 200), outline="black")
-    d.text((318, 200), "Clean", fill="black", font=_font(22))
-    d.rectangle((420, 190, 540, 235), fill=(200, 200, 200), outline="black")
-    d.text((435, 200), "Ignore", fill="black", font=_font(22))
-    return img, "What percentage of the disk is used, and which two buttons does the dialog have?", \
-        lambda t: "97" in t and "clean" in t.lower() and "ignore" in t.lower()
-
-
-def vis_sign_et():
-    from PIL import Image, ImageDraw
-    img = Image.new("RGB", (640, 240), (20, 60, 120))
-    d = ImageDraw.Draw(img)
-    d.text((40, 40), "Suletud", fill="white", font=_font(56))
-    d.text((40, 130), "12.-16. november", fill="white", font=_font(36))
-    return img, "Mis on sellel kirjas? Millal on suletud? Vasta eesti keeles.", lambda t: bool(re.search(r"12", t)) and bool(re.search(r"16", t)) and bool(re.search(r"november", t, re.I))
-
-
-def vis_table():
-    from PIL import Image, ImageDraw
-    img = Image.new("RGB", (560, 260), "white")
-    d = ImageDraw.Draw(img)
-    rows = [("Item", "Qty", "Price"), ("Rope", "4", "12"), ("Shackle", "10", "7"), ("Block", "6", "21")]
-    for r, row in enumerate(rows):
-        for c, cell in enumerate(row):
-            d.rectangle((30 + c * 160, 20 + r * 55, 190 + c * 160, 75 + r * 55), outline="black")
-            d.text((45 + c * 160, 32 + r * 55), cell, fill="black", font=_font(26))
-    return img, "What is the sum of the Qty column? Answer with the number only.", lambda t: bool(re.search(r"\b20\b", t))
-
-
-VISION = {"vis_invoice": vis_invoice, "vis_count": vis_count, "vis_chart": vis_chart, "vis_dialog": vis_dialog, "vis_sign_et": vis_sign_et, "vis_table": vis_table}
-
-
-def vision_section(client, reps):
-    try:
-        from PIL import Image  # noqa: F401
-    except ImportError:
-        return []
-    # A server without a vision projector either errors or silently drops the image: both mean "not applicable", not "failed".
-    from PIL import Image, ImageDraw
-    img = Image.new("RGB", (320, 160), "white")
-    ImageDraw.Draw(img).text((40, 30), "417", fill="black", font=_font(96))
-    probe = client.chat([{"role": "user", "content": [{"type": "text", "text": "What number is in the image? Answer with the number only."},
-                                                       {"type": "image_url", "image_url": {"url": _png(img)}}]}], max_tokens=1500)
-    if probe.get("error") or "417" not in (probe["choices"][0]["message"].get("content") or ""):
-        return []
-    rows = []
-    for name, build in VISION.items():
-        for _ in range(reps):
-            img, q, check = build()
-            r = client.chat([{"role": "user", "content": [{"type": "text", "text": q}, {"type": "image_url", "image_url": {"url": _png(img)}}]}])
-            text = r["choices"][0]["message"].get("content") or ""
-            rows.append({"case": name, "ok": bool(check(text)), "wall": r["_wall"], "truncated": r["_truncated"],
-                         "tokens": r.get("usage", {}).get("completion_tokens", 0), "answer": text[:200]})
-    return rows
-
-
-SECTIONS = {"robust": robust_section, "longagent": longagent_section, "estonian_free": estonian_free_section, "vision": vision_section}
+SECTIONS = {"robust": robust_section, "longagent": longagent_section, "estonian_free": estonian_free_section}
 EXTRA = set(SECTIONS)

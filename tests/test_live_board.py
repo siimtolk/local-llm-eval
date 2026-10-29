@@ -12,14 +12,14 @@ def rows(*oks):
 
 class TestExtraScores(unittest.TestCase):
     def test_extra_and_own_traffic_are_kept_apart(self):
-        res = {"tools": rows(True), "extra": {"robust": rows(True, False, True), "vision": rows(True), "other": rows(True)},
+        res = {"tools": rows(True), "extra": {"robust": rows(True, False, True), "longagent": rows(True), "other": rows(True)},
                "own_traffic": {"replay": rows(True, True, False), "ctx": rows(False)},
-               "section_versions": {"robust": "v1", "replay": "v1", "vision": "v2"}}
+               "section_versions": {"robust": "v1", "replay": "v1", "longagent": "v2"}}
         s = live_board.extra_scores(res)
-        self.assertEqual(s["extra"], {"vision": [1, 1], "robust": [2, 3]})  # unknown sections are not shown
+        self.assertEqual(s["extra"], {"longagent": [1, 1], "robust": [2, 3]})  # unknown sections are not shown
         self.assertEqual(s["own_traffic"], [2, 4])
         self.assertEqual(s["own_traffic_parts"], {"replay": [2, 3], "ctx": [0, 1]})
-        self.assertEqual(s["section_versions"], {"robust": "v1", "vision": "v2", "replay": "v1"})
+        self.assertEqual(s["section_versions"], {"robust": "v1", "longagent": "v2", "replay": "v1"})
 
     def test_a_result_without_them_has_none(self):
         s = live_board.extra_scores({"tools": rows(True)})

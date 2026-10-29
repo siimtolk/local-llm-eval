@@ -12,7 +12,7 @@ the biggest one, a speed-only run, `_nothink` passes and `exp-` results outside 
 several runs of one setup (reruns `_r2`, other llama.cpp builds `_b11707`, `-2` re-tests) the latest
 stands for it; the earlier ones stay in the data with `latest: false`. Quality is graded runs
 passed with Estonian and the uncensored set left out, as in the articles. The extra sections (estonian_free,
-vision, robust, longagent under the result's "extra" key; replay, cron_replay, ctx under "own_traffic") are shown as
+robust, longagent under the result's "extra" key; replay, cron_replay, ctx under "own_traffic") are shown as
 their own columns and never count in that percentage; a setup that ran them also gets a second total, graded_all / pct_all.
 
 Display names and kinds come from tools/board_names.json (key -> {name, kind}); a setup without an
@@ -35,7 +35,7 @@ from results_table import sections  # noqa: E402
 NAMES = Path(__file__).resolve().parent / "board_names.json"
 EXTRAS_FOR = Path(__file__).resolve().parent / "board_extras.json"  # manual override of extras_targets(): {extras-only result label: core result label}
 NOT_GRADED = {"uncensored"}
-EXTRA_SECTIONS = ("estonian_free", "vision", "robust", "longagent")  # result key "extra": the public, synthetic sections
+EXTRA_SECTIONS = ("estonian_free", "robust", "longagent")  # result key "extra": the public, synthetic sections
 TRAFFIC_SECTIONS = ("replay", "cron_replay", "ctx")                  # result key "own_traffic": built from the owner's own agent history
 
 

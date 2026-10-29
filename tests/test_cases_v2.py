@@ -252,35 +252,6 @@ class EstonianSection(unittest.TestCase):
         self.assertEqual([r["case"] for r in rows if not r["ok"]], [], [r.get("detail") for r in rows if not r["ok"]])
 
 
-class VisionSection(unittest.TestCase):
-    def test_scripted_answers(self):
-        good = {"vis_invoice": "2026-1043", "vis_count": "7", "vis_chart": "Tuesday, 31", "vis_dialog": "97% used; buttons: Clean and Ignore",
-                "vis_sign_et": "Suletud, 12.-16. november", "vis_table": "20"}
-        bad = {"vis_invoice": "2026-1034", "vis_count": "11", "vis_chart": "Monday, 12", "vis_dialog": "97% used", "vis_sign_et": "Avatud", "vis_table": "16"}
-        for name, build in v2.VISION.items():
-            _, _, check = build()
-            self.assertTrue(check(good[name]), name)
-            self.assertFalse(check(bad[name]), name)
-
-    def test_skipped_without_vision(self):
-        class NoVision:
-            def chat(self, messages, tools=None, max_tokens=None):
-                return {"choices": [{"message": {"content": ""}, "finish_reason": "error"}], "error": "HTTP 400: image input is not supported", "_wall": 0.0, "_truncated": False}
-        self.assertEqual(v2.vision_section(NoVision(), 1), [])
-
-        class DropsImages:  # answers politely but never sees the image, like a text-only shim
-            def chat(self, messages, tools=None, max_tokens=None):
-                return {"choices": [{"message": {"content": "I can't see an image, only a placeholder."}, "finish_reason": "stop"}], "_wall": 0.0, "_truncated": False}
-        self.assertEqual(v2.vision_section(DropsImages(), 1), [])
-
-        class Sees:
-            def chat(self, messages, tools=None, max_tokens=None):
-                q = messages[0]["content"][0]["text"]
-                text = "417" if "number is in the image" in q else "2026-1043"
-                return {"choices": [{"message": {"content": text}, "finish_reason": "stop"}], "_wall": 0.0, "_truncated": False}
-        rows = v2.vision_section(Sees(), 1)
-        self.assertEqual(len(rows), 6)
-        self.assertEqual([r["case"] for r in rows if r["ok"]], ["vis_invoice"])
 
 
 if __name__ == "__main__":

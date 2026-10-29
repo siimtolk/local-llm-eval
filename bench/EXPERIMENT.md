@@ -73,8 +73,8 @@ $EXPERIMENTS set <id> failed '<one-sentence reason>'   # when the variant could 
    limit that covers it (up to 110 min); if it is cut off, rerun only the missing sections with
    `--only` and the same label.
    The default run includes the extra sections (`bench/cases_v2.py`, `bench/cases_private.py`: robust, longagent,
-   estonian_free, vision, replay, cron_replay, ctx). They land under the result file's `extra` key and do
-   not touch the core totals. Sections the server cannot run (no vision, no Estonian checker,
+   estonian_free, replay, cron_replay, ctx). They land under the result file's `extra` key and do
+   not touch the core totals. Sections the server cannot run (no Estonian checker,
    no private fixtures) print `skipped`: that is fine, say which in the journal.
    Then run each of the spec's `checks` against the variant server
    and note what it showed. Note the VRAM use (`nvidia-smi`) while it serves.
