@@ -5,6 +5,21 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## 2026-10-29 — experiment 20261029-extras-vllm-heretic-rerun: Extra bench sections, rerun: replay, cron_replay, ctx for Heretic ARA NVFP4 on vLLM 0.32 (tp2, MTP 3)
+
+- **Hypothesis:** the first run gave robust, longagent and estonian_free but no replay, cron_replay or ctx. How does the vLLM Heretic build do on those against production?
+- **Variant:** vLLM 0.32 container, tp2, `--language-model-only --enable-chunked-prefill --linear-backend flashinfer_cutlass --tool-call-parser qwen3_xml`, MTP 3, `VLLM_EXTRA_ENV="VLLM_USE_FLASHINFER_SAMPLER=1 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True"`. Only `--only replay`, `cron_replay`, `ctx` (three separate commands). Vision skipped (no vision tower). KV cache 395,475 tokens (3.02x at 131,072).
+- **Labels:** the bench ran under the label from the run prompt, `exp-20261029-extras-vllm-heretic-rerun` (`results/exp-20261029-extras-vllm-heretic-rerun.json`, sections under `own_traffic`). The spec's `extra.*` metrics (robust, longagent, estonian_free) exist only in the first run's file `vllm-qwen3.8-27b-heretic-ara-nvfp4-mtp_vllm0.32_tp2.json`.
+- **Verdict:** I ran `verdict` twice: against the new label it said `failed (0/2) — no value for extra.robust, extra.longagent, extra.estonian_free` (this run has none of them); against the spec's label, as the spec says, it stored `beneficial (2/2 pass-rule conditions met)`. The stored verdict is the second one and rests on the **first run's** robust 65/72 vs 62, longagent 21/21 vs 20; tonight's sections are not part of the pass rule.
+- **Results vs production baseline (2026-10-18 run):**
+  - ctx: 36/45 vs 32/45. Failed: ctx_fix_bug, ctx_remembered_pref, ctx_three_tools, ctx_torrent_pick, ctx_two_tools (50 min limit not hit: 1683 s).
+  - replay: 108/180 vs 107/180 (2 out of tokens). The first 50 min attempt was cut off with no output; the rerun with a 110 min limit finished in 4798 s (median 16.7 s/case).
+  - cron_replay: 13/36 vs 21/36, **worse**. 20 cases out of tokens; failed both repeats of conversation-starters, hn-brief, local-models, procurement-brief, tech-brief. Median 138 s per case (4325 s); also cut off at 50 min on the first attempt.
+  - skipped: vision. robust, longagent, estonian_free not rerun (first run: 65/72, 21/21, 29/39).
+- **Checks (optional, not examined in depth):** failure reasons beyond the lists above were not analysed. MTP acceptance in the log was at most 4.00 mean length on a short sample.
+- **Operational notes:** the container binds 172.17.0.1:8085 so the bench used `--base-url http://172.17.0.1:8085` with production's API key. `serve health` reports "no answer" for that reason. VRAM ~15.1 GB per GPU while serving. Production restored, `/health` ok, one chat answered.
+- **Takeaways:** ctx and replay are on par with production; cron_replay is clearly weaker and very slow (long thinking runs out of tokens), the main negative for this build.
+
 ## 2026-10-29 — experiment 20261027-extras-vllm-heretic: Extra bench sections: Heretic ARA NVFP4 on vLLM 0.32 (tp2, MTP 3)
 
 - **Hypothesis:** the vLLM Heretic ARA NVFP4 build (faster, 239 vs 242 core, weaker Estonian) holds up on prompt-injection robustness and long multi-step agent tasks.
