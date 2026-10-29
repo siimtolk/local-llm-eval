@@ -36,6 +36,7 @@ NAMES = Path(__file__).resolve().parent / "board_names.json"
 EXTRAS_FOR = Path(__file__).resolve().parent / "board_extras.json"  # manual override of extras_targets(): {extras-only result label: core result label}
 NOT_GRADED = {"uncensored"}
 EXTRA_SECTIONS = ("estonian_free", "robust", "longagent")  # result key "extra": the public, synthetic sections
+NO_EXTRAS = {"exp-20261028-kv-q8", "exp-20261029-cache-reuse"}  # result labels listed as Graded only: their extra / own_traffic rows are not shown or counted
 TRAFFIC_SECTIONS = ("replay", "cron_replay", "ctx")                  # result key "own_traffic": built from the owner's own agent history
 
 
@@ -197,8 +198,11 @@ def collect(results_dir, baseline, confs_dir=None, engine_titles=None, extras_fo
         res = json.loads(path.read_text())
         if not isinstance(res, dict) or not res.get("suite"):
             continue
-        for src in [k for k, v in extras_for.items() if v == path.stem]:  # extras-only runs filed under this setup
-            res = merge_extras(res, results_dir / f"{src}.json")
+        if path.stem in NO_EXTRAS:
+            res = {k: v for k, v in res.items() if k not in ("extra", "own_traffic", "section_versions")}
+        else:
+            for src in [k for k, v in extras_for.items() if v == path.stem]:  # extras-only runs filed under this setup
+                res = merge_extras(res, results_dir / f"{src}.json")
         ok, n = totals(res, NOT_GRADED)  # graded incl. Estonian, for the "full run" test
         runs.append((path, res, n))
     if not runs:
