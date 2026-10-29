@@ -155,6 +155,8 @@ def main():
     # model-written code runs with these directories hidden (cases.py reads it at import)
     os.environ.setdefault("BENCH_SANDBOX_HIDE", ":".join(config.get("bench", "sandbox_hide", [])))
     files = [f for f in args.cases.split(",") if f]
+    if not files:
+        ap.error("--cases names no file")
     modules = [load_sections(f) for f in files]
     cases = modules[0]
     sections, extra_names, private, versions = {}, set(), set(), {}
@@ -175,6 +177,8 @@ def main():
     extra.update(args.request_extra)
     if args.model:
         extra["model"] = args.model
+    if not args.api_key_file:
+        ap.error("no API key file: pass --api-key-file or set serving.api_key_file in local.toml")
     client = Client(args.base_url, Path(args.api_key_file).read_text().strip(), args.temperature, extra)
     only, t0 = (args.only or "speed," + ",".join(sections)).split(","), time.time()
     out = Path(args.results_dir) / f"{args.label}.json"
