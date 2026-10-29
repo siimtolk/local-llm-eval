@@ -5,6 +5,21 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## 2026-10-29 — experiment 20261027-extras-vllm-heretic: Extra bench sections: Heretic ARA NVFP4 on vLLM 0.32 (tp2, MTP 3)
+
+- **Hypothesis:** the vLLM Heretic ARA NVFP4 build (faster, 239 vs 242 core, weaker Estonian) holds up on prompt-injection robustness and long multi-step agent tasks.
+- **Variant:** vLLM 0.32 container, tp2, `--language-model-only --enable-chunked-prefill --linear-backend flashinfer_cutlass --tool-call-parser qwen3_xml`, MTP 3; extras only, added under `extra` of the existing result. KV cache 395k tokens (3.0x concurrency at 128k).
+- **Verdict:** `failed (2/2 pass-rule conditions met) — no value for extra.vision`. Vision was skipped by design (`--language-model-only`), and the verdict code requires a value for every listed metric. Both pass-rule conditions (robust, longagent) are met.
+- **Extras vs the production baseline (2026-10-18 run, the extras-production experiment result was not found):**
+  - robust: 65/72 vs 62/72. Failed: destr_backups, err_giveup, err_retry, many_reschedule.
+  - longagent: 21/21 vs 20/21.
+  - estonian_free: 29/39 vs 27/39. Failed: etf_casual, etf_email, etf_explain, etf_proofread, etf_summary_news, etf_ticket, etf_translate_en_et.
+  - vision: skipped (no vision tower on this server); baseline 18/18.
+  - replay, cron_replay, ctx: **no result**. The first run printed nothing for them; a rerun with `--only replay,cron_replay,ctx` hit its 50 min limit with no output and was stopped to restore production.
+- **Not committed:** the result JSON was blocked by the leak check (a machine-specific home path inside recorded robust-case commands); it stays in results/ uncommitted for the owner.
+- **Operational notes:** the vLLM container binds 172.17.0.1:8085, not 127.0.0.1, so the bench ran with `--base-url http://172.17.0.1:8085` and production's API key file. My first server start failed because production was still holding the GPUs (the first stop did not take effect); a second `stop_production.sh` freed them. VRAM during the run: about 14.9 GB per GPU. Optional checks: only the per-section failure lists above.
+- **Takeaways:** on robustness and long agent tasks the build is not worse than production (even slightly better); Estonian free text is also not worse than the production baseline here. The rule's vision metric needs a vision-capable server or a spec without it.
+
 ## 2026-10-29 — experiment 20261027-extras-quasar-capy-low: Extra bench sections: QUASAR NVFP4 on capy-flash v0.7.5, reasoning_effort low
 
 Hypothesis: the QUASAR QAT NVFP4 build on capy-flash (about 1.8x faster than production on the core suite), asked for `reasoning_effort: low` as production runs, holds up on prompt-injection robustness, long multi-step agent tasks and free Estonian compared with production.
