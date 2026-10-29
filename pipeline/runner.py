@@ -219,7 +219,7 @@ def prompt_for(repo, c, end, early=False, at=None):
 
 
 def experiment_prompt(eid, e, end, early=False, at=None):
-    spec = {k: e.get(k) for k in ("id", "type", "title", "hypothesis", "variant", "metrics", "pass_rule", "checks", "cost")}
+    spec = {k: e.get(k) for k in ("id", "type", "title", "hypothesis", "variant", "metrics", "checks", "cost")}
     return (f"Tonight's experiment: {e['type']} experiment {eid}. Run it by following {EXPERIMENT} step by step, "
             f"with result label exp-{eid}. "
             + time_text(end, at or config.now()) + (EARLY if early else "")
@@ -327,7 +327,7 @@ def test_one(repo, end, early=False):
 
 def test_experiment(eid, end, early=False):
     """One config/engine experiment: running, the agent follows EXPERIMENT.md (which ends with
-    experiments.py verdict); unfinished at the end -> failed."""
+    experiments.py record); unfinished at the end -> failed."""
     with experiments.store() as data:
         e = data["experiments"][eid]
         e.update(status="running", updated=candidates.now())

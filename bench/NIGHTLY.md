@@ -13,7 +13,7 @@ them by name: `$EVAL` (this repo), `$SERVING` (the serving repo), `$MODELS`, `$R
 `$SUMMARY_LANGUAGE`. Record the result with
 
 ```bash
-$CANDIDATES set <repo> <tested|rejected|skipped|failed> '<summary>'
+$CANDIDATES set <repo> <tested|skipped|failed> '<summary>'
 ```
 
 Use only that command for the store.
@@ -80,7 +80,7 @@ not fit in VRAM is `skipped`.
    everyday assistant uses the model (the server's default reasoning): 97 graded cases x 3
    (core suite 2026-10-18, incl. a ~105k-token prompt), then the extra sections (`cases_v2.py`: robust, longagent,
    estonian_free, vision; `cases_private.py`: replay, cron_replay, ctx; they land under `extra` and never change the
-   core totals or the verdict; a section the server cannot run prints `skipped`, say which), plus speed, two requests at once, two
+   core totals; a section the server cannot run prints `skipped`, say which), plus speed, two requests at once, two
    alternating chats and decode speed after ~30k and ~90k tokens of context, 45–70 min for the core, more for the extra sections (they run last, so a cut-off loses only them).
    Then the everyday sections with thinking off, under the same label plus `_nothink`:
    `bench/bench.py --label <label>_nothink --thinking off --only tools,extract,instruct,judge,estonian --base-url http://127.0.0.1:$TEST_PORT --api-key-file $SERVING/secrets/<model>/api_key.txt > $SERVING/logs/bench-<model>-nothink.log 2>&1`
@@ -106,24 +106,19 @@ not fit in VRAM is `skipped`.
    (`speed_method: client`); the older llama-server figures ran about 3% higher.
 9. **Write it up** in `$EVAL/JOURNAL.md`: a section `## <date> — <model>` above the older ones:
    the question, the setup (the config's key lines), a table against production, the
-   per-section table, and short takeaways: failures that matter, speed, licence. Then refresh the
+   per-section table, and short factual observations: failures, speed, licence. No verdict. Then refresh the
    README table: `python3 tools/results_table.py --write`.
-10. **Verdict:**
-    - `tested`: at least as good as production on graded runs (at most 3 fewer than production on
-      the same suite), all uncensored cases answered, and clearly better on something (speed,
-      context, vision, a usable thinking-off mode). It is worth a live trial. Keep the weights.
-    - `rejected`: otherwise. **Never delete weights** (the owner decides; ask in the report if disk is short).
-      Keep the weights, the config and the results.
+10. **No verdict:** the owner reads the results and decides. Do not call the candidate good, bad, a fit, worth a trial or rejected, and do not recommend replacing production or not; report the numbers next to production's and what you saw (failures, speed, context, VRAM). Record a measured run as `tested`. **Never delete weights** (the owner decides; ask in the report if disk is short): keep the weights, the config and the results.
 11. **Commit and push**, in small commits:
     - in `$EVAL`: `results/<label>.json` (and `_nothink`), `JOURNAL.md`, `README.md`. The
       pre-commit leak check must pass; never bypass it. Message:
-      `Test <model> against prod: <one-line verdict>`. Then `git push`.
+      `Test <model> against prod: results`. Then `git push`.
     - in `$SERVING`: the config `models.d/<model>.conf.sh`, message `Config for <model> (nightly test)`,
       `git push`. Do not add model weights, logs or secrets (they are gitignored).
-12. **Record:** `$CANDIDATES set <repo> <tested|rejected> '<summary>'`.
-    The summary covers graded and uncensored results against production, speed, the main
-    weakness or strength, and the verdict, e.g. (Estonian)
-    `271/291 (prod 283), eesti 36/45 (prod 41), tsensuurita 11/11, mõtlemiseta 120/141 (prod 113), proosa 78 tok/s (prod 46). Kukkus koodis ja 100k otsingul. Ei asenda tootmist.`
+12. **Record:** `$CANDIDATES set <repo> tested '<summary>'`.
+    The summary covers graded and uncensored results against production, speed, and where it
+    failed, with no verdict, e.g. (Estonian)
+    `271/291 (prod 283), eesti 36/45 (prod 41), tsensuurita 11/11, mõtlemiseta 120/141 (prod 113), proosa 78 tok/s (prod 46). Kukkus koodis ja 100k otsingul.`
 
 If anything fails along the way, restore production first (step 7), then record `failed`
 with a one-sentence reason in the summary.

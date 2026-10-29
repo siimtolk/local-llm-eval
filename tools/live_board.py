@@ -6,9 +6,9 @@
     tools/live_board.py --publish       --write, then commit and push the blog repo if the data changed
 
 One point per model setup: full runs of the newest suite only (a run with fewer graded cases than
-the biggest one, a speed-only run, `_nothink` passes and `exp-` experiments are not points; the exception
-is a full run of an `engine` experiment, another backend serving a model, which is a point named by the
-experiment's title), and of
+the biggest one, a speed-only run, `_nothink` passes and `exp-` results outside the experiments store are not points; a full run of a
+`config` or `engine` experiment is a point named by the experiment's title, a config one prefixed with
+"Production model, "), and of
 several runs of one setup (reruns `_r2`, other llama.cpp builds `_b11707`, `-2` re-tests) the latest
 stands for it; the earlier ones stay in the data with `latest: false`. Quality is graded runs
 passed with Estonian and the uncensored set left out, as in the articles. The extra sections (estonian_free,
@@ -183,7 +183,7 @@ def merge_extras(res, extras_path):
 
 
 def collect(results_dir, baseline, confs_dir=None, engine_titles=None, extras_for=None):
-    """engine_titles: {result label: title} of the engine experiments, the only `exp-` results shown."""
+    """engine_titles: {result label: title} of the config/engine experiments, the only `exp-` results shown."""
     engine_titles = engine_titles or {}
     names = json.loads(NAMES.read_text()) if NAMES.exists() else {}
     extras_for = {**(extras_for or {}), **(json.loads(EXTRAS_FOR.read_text()) if EXTRAS_FOR.exists() else {})}
@@ -283,13 +283,15 @@ def check(data, old):
 
 
 def engine_experiment_titles():
-    """{result label: title} of the engine experiments (<state>/experiments.json), whose full runs the board shows."""
+    """{result label: title} of the config and engine experiments (<state>/experiments.json), whose full runs
+    the board shows. A config experiment changes how production's model is served: "Production model, <title>"."""
     import experiments
     try:
         data = json.loads(experiments.store_path().read_text())["experiments"]
     except (OSError, ValueError, KeyError):
         return {}
-    return {f"exp-{eid}": e["title"] for eid, e in data.items() if e.get("type") == "engine" and e.get("title")}
+    return {f"exp-{eid}": e["title"] if e.get("type") == "engine" else f"Production model, {e['title']}"
+            for eid, e in data.items() if e.get("type") in ("engine", "config") and e.get("title")}
 
 
 def extras_targets(results_dir):

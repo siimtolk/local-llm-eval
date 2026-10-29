@@ -371,24 +371,22 @@ def wiki_health(ctx):
 
 # ---- 4 tuning-sweep, 5 build-compare ----------------------------------------------------------------
 
-SPEED = [{"metric": "tok_s.prose", "min_ratio": 1.03}, {"metric": "passed", "min_delta": -3}]
 METRICS = ["passed", "tok_s.prose", "tok_s.parallel", "ttft.long_prompt"]
 TUNING_PLAN = [
     ("ubatch-1024", "Physical batch (ubatch) 1024", "A larger ubatch speeds up prompt reading without changing output.",
-     {"server_args_add": ["--ubatch-size", "1024"]}, SPEED),
+     {"server_args_add": ["--ubatch-size", "1024"]}),
     ("batch-4096", "Logical batch 4096 with ubatch 1024", "Larger batches may speed up long-prompt ingestion.",
-     {"server_args_add": ["--batch-size", "4096", "--ubatch-size", "1024"]}, SPEED),
+     {"server_args_add": ["--batch-size", "4096", "--ubatch-size", "1024"]}),
     ("kv-q8", "KV cache q8_0 instead of q4_0", "A less lossy KV cache may raise quality on long contexts at small speed cost.",
      {"server_args_remove": ["--cache-type-k", "q4_0", "--cache-type-v", "q4_0"],
       "server_args_add": ["--cache-type-k", "q8_0", "--cache-type-v", "q8_0"],
-      "notes": "Remove each listed argument together with its value, then append the added ones."},
-     [{"metric": "passed", "min_delta": 2}, {"metric": "tok_s.prose", "min_ratio": 0.9}]),
+      "notes": "Remove each listed argument together with its value, then append the added ones."}),
     ("cache-reuse", "Prompt cache reuse 256", "KV shifting reuse cuts re-reading when prompts change slightly.",
-     {"server_args_add": ["--cache-reuse", "256"]}, SPEED),
+     {"server_args_add": ["--cache-reuse", "256"]}),
     ("temp-07", "Sampling temperature 0.7", "A lower temperature may raise tool-use and code scores.",
-     {"request_extra": {"temperature": 0.7}}, [{"metric": "passed", "min_delta": 2}]),
+     {"request_extra": {"temperature": 0.7}}),
     ("top-k-40", "Sampling top_k 40, min_p 0.05", "Different truncation may help instruction following.",
-     {"request_extra": {"top_k": 40, "min_p": 0.05}}, [{"metric": "passed", "min_delta": 2}]),
+     {"request_extra": {"top_k": 40, "min_p": 0.05}}),
 ]
 
 
@@ -413,11 +411,11 @@ def tuning_sweep(ctx):
     done = mem.setdefault("queued", [])
     if _open_night_experiments():
         return result("an earlier night-queue experiment is still open; nothing added")
-    for slug, title, hyp, variant, rule in TUNING_PLAN:
+    for slug, title, hyp, variant in TUNING_PLAN:
         if slug in done:
             continue
         ok, eid = _enqueue({"type": "config", "slug": slug, "title": title, "hypothesis": hyp, "variant": variant,
-                            "metrics": METRICS, "pass_rule": rule, "priority": 0})
+                            "metrics": METRICS, "priority": 0})
         done.append(slug)
         save_memory("tuning-sweep", mem)
         return result(f"queued experiment {eid}" if ok else f"could not queue {slug}: {eid}", None, False)
@@ -436,7 +434,7 @@ def build_compare(ctx):
     ok, eid = _enqueue({"type": "engine", "slug": f"build-{nxt}", "title": f"llama.cpp-next {nxt} vs production {prod}",
                         "hypothesis": "A newer llama.cpp build is at least as good and maybe faster.",
                         "variant": {"llama_cpp": config.get("serving", "candidate_llama_cpp", "llama.cpp-next")},
-                        "metrics": METRICS, "pass_rule": [{"metric": "passed", "min_delta": -2}, {"metric": "tok_s.prose", "min_ratio": 1.0}],
+                        "metrics": METRICS,
                         "priority": 0})
     mem.setdefault("tested", []).append(nxt)
     save_memory("build-compare", mem)

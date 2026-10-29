@@ -85,10 +85,11 @@ inbox = ""                          # e.g. "~/wiki/inbox/local-llm-eval"; empty:
 topic = ""                          # the wiki page results belong to, e.g. "results/model-tests"
 
 [experiments]
-# Run after an experiment's final status (also a model's tested/rejected/failed) with its id (a repo,
+# Run after an experiment's final status (also a model's tested/failed) with its id (a repo,
 # for a model) as the last argument: an argument list, no shell, 60 s limit, failures only logged.
-# E.g. a chat bridge script that posts the verdict: ["~/bin/post-verdict"]. Empty: off.
-verdict_command = []
+# E.g. a chat bridge script that posts the results: ["~/bin/post-results"]. Empty: off.
+# (verdict_command is the old name and still read.)
+result_command = []
 
 [huggingface]
 cli = "hf"                          # huggingface_hub CLI for downloads

@@ -31,7 +31,6 @@ SPEC = {"type": "config", "slug": "kv-q8", "title": "KV cache q8_0 instead of q4
         "variant": {"server_args_add": ["--cache-type-k", "q8_0"], "server_args_remove": ["--cache-type-k"],
                     "request_extra": {}, "notes": ""},
         "metrics": ["passed", "passed.tools", "tok_s.prose"],
-        "pass_rule": [{"metric": "passed", "min_delta": 0}, {"metric": "tok_s.prose", "min_ratio": 0.95}],
         "checks": ["the server log shows q8_0 for K"], "cost": {"gpu_min": 70, "disk_gb": 0, "usd": 0}}
 
 
@@ -56,7 +55,7 @@ class Base(unittest.TestCase):
                              results=str(self.dir / "results"), serving=str(self.dir / "serving"))
         conf["production"]["baseline"] = "prod-base"
         conf["wiki"]["inbox"] = str(self.dir / "inbox")
-        conf.setdefault("experiments", {})["verdict_command"] = []
+        conf.setdefault("experiments", {})["result_command"] = []
         self.conf = conf
         (self.dir / "results").mkdir()
         patch = mock.patch.object(config, "load", return_value=conf)
@@ -123,32 +122,29 @@ class TestPure(Base):
         self.assertEqual(t, {"own_traffic.replay": 1})
         self.assertIn("own_traffic.ctx", experiments.KNOWN_METRICS)
 
-    def test_each_operator(self):
-        v, b = {"x": 110.0}, {"x": 100.0}
-        cases = [({"min_delta": 10}, True), ({"min_delta": 11}, False), ({"max_delta": 10}, True), ({"max_delta": 9}, False),
-                 ({"min_ratio": 1.1}, True), ({"min_ratio": 1.11}, False), ({"max_ratio": 1.1}, True),
-                 ({"max_ratio": 1.09}, False), ({"min_delta": 0, "max_ratio": 1.05}, False)]
-        for ops, want in cases:
-            with self.subTest(ops=ops):
-                self.assertIs(experiments.check({"metric": "x", **ops}, v, b)[0], want)
-
-    def test_missing_value_or_zero_baseline_fails(self):
-        self.assertFalse(experiments.check({"metric": "x", "min_delta": 0}, {}, {"x": 1})[0])
-        self.assertFalse(experiments.check({"metric": "x", "min_ratio": 1}, {"x": 1}, {"x": 0})[0])
+    def test_compare_one(self):
+        self.assertEqual(experiments.compare_one("x", 110.0, 100.0), {"variant": 110.0, "baseline": 100.0, "delta": 10.0, "ratio": 1.1})
+        self.assertEqual(experiments.compare_one("x", 1, 0)["ratio"], None)
+        self.assertEqual(experiments.compare_one("x", None, 1)["delta"], None)
+        self.assertIn("no value (variant)", experiments.compare_text("x", experiments.compare_one("x", None, 1)))
 
     def test_suite_mismatch_is_failed(self):
-        status, v, why = experiments.evaluate(SPEC, result(suite="2026-10-18"), result(suite="2026-10-01"))
-        self.assertEqual(status, "failed")
-        self.assertEqual(why, "baseline suite differs")
-        self.assertEqual((v["passed"], v["failed"]), ([], []))
+        status, rows, why = experiments.compare(SPEC, result(suite="2026-10-18"), result(suite="2026-10-01"))
+        self.assertEqual((status, rows, why), ("failed", {}, "baseline suite differs"))
 
-    def test_evaluate_beneficial_and_not(self):
-        self.assertEqual(experiments.evaluate(SPEC, result(), result())[0], "beneficial")
-        self.assertEqual(experiments.evaluate(SPEC, result(tools=(False,) * 3), result())[0], "not-beneficial")
+    def test_compare_has_no_verdict(self):
+        worse = result(tools=(False,) * 3, prose=(10.0, 10.0))
+        worse["extra"] = {"robust": [{"case": "a", "ok": True}]}
+        status, rows, _ = experiments.compare(SPEC, worse, result())
+        self.assertEqual(status, "done")  # measured; nothing passes or fails
+        self.assertEqual(list(rows), ["passed", "passed.tools", "tok_s.prose", "extra.robust"])
+        self.assertEqual((rows["passed"]["variant"], rows["passed"]["baseline"], rows["passed"]["delta"]), (1, 3, -2))
+        self.assertEqual(rows["extra.robust"]["baseline"], None)
+        self.assertEqual(list(experiments.compare({}, result(), result())[1]), experiments.DEFAULT_METRICS)
 
     def test_status_mapping_of_every_candidate_status(self):
         want = {"proposed": "planned", "pending": "approved", "downloading": "approved", "downloaded": "queued",
-                "testing": "running", "tested": "beneficial", "rejected": "not-beneficial", "skipped": "dropped",
+                "testing": "running", "tested": "done", "rejected": "done", "skipped": "dropped",
                 "failed": "failed"}
         self.assertEqual(set(want), set(candidates.STATUSES))
         for status, unified in want.items():
@@ -161,14 +157,12 @@ class TestAdd(Base):
         eid = self.add()
         self.assertRegex(eid, r"^\d{8}-kv-q8$")
         e = self.exps()[eid]
-        self.assertEqual((e["status"], e["type"], e["priority"], e["verdict"]), ("planned", "config", 0, {}))
+        self.assertEqual((e["status"], e["type"], e["priority"], e["comparison"]), ("planned", "config", 0, {}))
+        self.assertNotIn("pass_rule", e)
 
     def test_refusals(self):
         bad = {"bad slug": {"slug": "KV Q8!"}, "short slug": {"slug": "kv"},
                "unknown metric": {"metrics": ["passed", "speed.magic"]},
-               "unknown rule metric": {"pass_rule": [{"metric": "tok_s.nonsense", "min_ratio": 1}]},
-               "rule without operator": {"pass_rule": [{"metric": "passed"}]},
-               "rule with a string": {"pass_rule": [{"metric": "passed", "min_delta": "0"}]},
                "dotdot build": {"variant_llama_cpp": "../llama.cpp-next"},
                "absolute build": {"variant_llama_cpp": "/opt/llama.cpp"},
                "newline arg": {"variant_server_args_add": ["--ctx-size\n4096"]},
@@ -211,8 +205,8 @@ class TestTransitions(Base):
         eid = self.add()
         self.assertEqual(self.cli("drop", eid, "not worth it")[0], 0)
         self.assertEqual((self.exps()[eid]["status"], self.exps()[eid]["summary"]), ("dropped", "not worth it"))
-        code, out = self.cli("set", eid, "beneficial", "I think it is good")
-        self.assertEqual(code, 1, out)  # the verdict is computed, never set
+        code, out = self.cli("set", eid, "done", "I think it is good")
+        self.assertEqual(code, 1, out)  # done comes from record, never set
         self.assertEqual(self.exps()[eid]["status"], "dropped")
 
     def test_unified_list_shows_both_stores(self):
@@ -227,7 +221,7 @@ class TestTransitions(Base):
         self.assertEqual(json.loads(self.cli("show", "a/B-GGUF", "--json")[1])["candidate"]["status"], "downloaded")
 
 
-class TestVerdict(Base):
+class TestRecord(Base):
     def setUp(self):
         super().setUp()
         self.eid = self.add()
@@ -236,60 +230,62 @@ class TestVerdict(Base):
         self.cli("set", self.eid, "running")
         self.write_result("prod-base", result())
 
-    def test_beneficial_with_wiki_note(self):
-        self.write_result(f"exp-{self.eid}", result(prose=(44.0, 46.0)))
-        code, out = self.cli("verdict", self.eid, f"exp-{self.eid}")
+    def test_record_with_wiki_note(self):
+        self.write_result(f"exp-{self.eid}", result(prose=(20.0, 20.0)))
+        code, out = self.cli("record", self.eid, f"exp-{self.eid}")
         self.assertEqual(code, 0, out)
-        self.assertIn("beneficial", out)
+        self.assertIn("done", out)
+        self.assertIn("tok_s.prose 20 vs 42", out)
         e = self.exps()[self.eid]
-        self.assertEqual((e["status"], e["result"], e["verdict"]["failed"]), ("beneficial", f"exp-{self.eid}", []))
-        self.assertEqual(e["verdict"]["metrics"]["passed"], [3, 3])
-        self.assertEqual(set(e["verdict"]["rules"]), {"passed", "tok_s.prose"})
+        self.assertEqual((e["status"], e["result"]), ("done", f"exp-{self.eid}"))
+        self.assertEqual(e["comparison"]["passed"]["variant"], 3)
+        self.assertNotIn("verdict", e)
         notes = list((self.dir / "inbox").glob("*.md"))
         self.assertEqual(len(notes), 1)
-        self.assertIn("beneficial", notes[0].read_text())
+        text = notes[0].read_text()
+        self.assertIn("No verdict", text)
+        self.assertNotIn("beneficial", text)
 
-    def test_not_beneficial(self):
-        self.write_result(f"exp-{self.eid}", result(prose=(20.0, 20.0)))
-        self.cli("verdict", self.eid, f"exp-{self.eid}")
-        e = self.exps()[self.eid]
-        self.assertEqual((e["status"], e["verdict"]["failed"]), ("not-beneficial", ["tok_s.prose"]))
+    def test_old_verdict_name_records(self):
+        self.write_result(f"exp-{self.eid}", result())
+        self.assertEqual(self.cli("record", self.eid, f"exp-{self.eid}")[0], 0)
+        self.assertEqual(self.exps()[self.eid]["status"], "done")
 
     def test_suite_mismatch_via_cli(self):
         self.write_result(f"exp-{self.eid}", result(suite="2026-11-01"))
-        code, out = self.cli("verdict", self.eid, f"exp-{self.eid}")
+        code, out = self.cli("record", self.eid, f"exp-{self.eid}")
         self.assertIn("baseline suite differs", out)
         self.assertEqual(self.exps()[self.eid]["status"], "failed")
 
     def test_missing_result_is_failed(self):
-        self.cli("verdict", self.eid, "exp-nothing")
+        self.cli("record", self.eid, "exp-nothing")
         self.assertEqual(self.exps()[self.eid]["status"], "failed")
 
     def test_bad_label_is_refused(self):
-        code, out = self.cli("verdict", self.eid, "../prod-base")
+        code, out = self.cli("record", self.eid, "../prod-base")
         self.assertEqual(code, 1, out)
         self.assertEqual(self.exps()[self.eid]["status"], "running")
 
-    def test_verdict_command_is_called_with_the_id(self):
+    def test_result_command_is_called_with_the_id(self):
         calls = self.dir / "calls.txt"
         stub = self.dir / "stub.py"
         stub.write_text("import sys\nopen(sys.argv[1], 'a').write(' '.join(sys.argv[2:]) + '\\n')\n")
-        self.conf["experiments"]["verdict_command"] = [sys.executable, str(stub), str(calls), "--verdict"]
+        self.conf["experiments"]["result_command"] = [sys.executable, str(stub), str(calls), "--result"]
         self.write_result(f"exp-{self.eid}", result())
-        self.cli("verdict", self.eid, f"exp-{self.eid}")
-        self.assertEqual(calls.read_text().splitlines(), [f"--verdict {self.eid}"])
+        self.cli("record", self.eid, f"exp-{self.eid}")
+        self.assertEqual(calls.read_text().splitlines(), [f"--result {self.eid}"])
 
-    def test_verdict_command_failure_is_logged_not_raised(self):
-        self.conf["experiments"]["verdict_command"] = [str(self.dir / "no-such-program")]
+    def test_result_command_failure_is_logged_not_raised(self):
+        self.conf["experiments"]["result_command"] = [str(self.dir / "no-such-program")]
         self.write_result(f"exp-{self.eid}", result())
-        code, out = self.cli("verdict", self.eid, f"exp-{self.eid}")
+        code, out = self.cli("record", self.eid, f"exp-{self.eid}")
         self.assertEqual(code, 0)
-        self.assertIn("verdict_command failed", out)
+        self.assertIn("result_command failed", out)
 
     def test_candidates_set_calls_the_hook_on_final_status(self):
         with candidates.store() as data:
             data["candidates"]["a/B-GGUF"] = {"name": "B", "status": "testing"}
-        with mock.patch.object(experiments, "verdict_hook") as hook:
+        with mock.patch.object(experiments, "result_hook") as hook:
             for status in ("testing", "rejected"):
                 with mock.patch.object(sys, "argv", ["candidates.py", "set", "a/B-GGUF", status, "x"]):
                     candidates.main()

@@ -18,11 +18,12 @@ machine-specific value lives in `local.toml`, which is not tracked.
 | 1. Discover | `pipeline/discover.py` | morning | no | Hugging Face trending and searches (`uncensored`, `abliterated`, ...), new repos of trusted publishers, r/LocalLLaMA reactions; keeps what fits the machine and is new |
 | 2. Judge | `pipeline/judge.py` | morning | yes | one turn of a model reads the candidates (`prompts/judge.md`) and picks at most three worth testing; the brief goes to your chat |
 | 3. Fetch | `pipeline/fetch.py` | daytime | no | risk check (`pipeline/risk.py`: HF file scans, the GGUF header, the uploader); after you tick candidates in a poll, picks the quant that fits and downloads it; also queues a 4-bit vLLM build of the same model |
-| 4. Test | `pipeline/runner.py model-test` | night window | yes | the agent follows `bench/NIGHTLY.md` (or `NIGHTLY_VLLM.md`): stop production, serve the candidate, run `bench/bench.py`, restore production, write up, commit, record a verdict |
-| 5. Report | `pipeline/report.py` | morning | no | each candidate's verdict and summary, plus the new proposals with their risk and a poll |
+| 4. Test | `pipeline/runner.py model-test` | night window | yes | the agent follows `bench/NIGHTLY.md` (or `NIGHTLY_VLLM.md`): stop production, serve the candidate, run `bench/bench.py`, restore production, write up, commit, record the results (no verdict: you decide) |
+| 5. Report | `pipeline/report.py` | morning | no | each candidate's results summary, plus the new proposals with their risk and a poll |
 
 The candidates store (`paths.store`) carries each model through
-`proposed → pending → downloading → downloaded → testing → tested | rejected | skipped | failed`;
+`proposed → pending → downloading → downloaded → testing → tested | skipped | failed`
+(`rejected` is the old name of `tested` from when the test gave a verdict);
 `pipeline/candidates.py` is the only code that changes it.
 
 The benchmark (`bench/bench.py`, cases in `bench/cases.py`) works against any OpenAI-compatible
@@ -51,22 +52,23 @@ priority first, then oldest), and never change production. A `model` experiment 
 it stays in the candidates store and `candidates.py` as before.
 
 Config and engine experiments live in `paths.experiments` and go
-`planned → approved → queued → running → beneficial | not-beneficial | failed` (or `dropped`).
-A spec names its metrics (`passed`, `passed.<section>`, `tok_s.<speed test>`, `ttft.<speed test>`)
-and a pass rule: conditions `min_delta` / `max_delta` (variant − baseline) and `min_ratio` /
-`max_ratio` (variant / baseline) against production's baseline (`[production] baseline`). The
-verdict is computed in code, never by the agent; a baseline from another suite makes it `failed`.
+`planned → approved → queued → running → done | failed` (or `dropped`).
+A spec names its metrics (`passed`, `passed.<section>`, `tok_s.<speed test>`, `ttft.<speed test>`);
+`record` stores them, plus every extra and own-traffic section, next to production's baseline
+(`[production] baseline`) with the delta and ratio. There is no pass rule and no verdict: you read
+the numbers and decide. A baseline from another suite makes it `failed`. A full run also shows on
+the live results board, named by the experiment's title.
 
 ```bash
 python3 pipeline/experiments.py add --spec-file kv-q8.json   # validated, stored as planned; prints the id
 python3 pipeline/experiments.py approve 20261024-kv-q8        # then: queue (approved -> queued)
 python3 pipeline/experiments.py list [--json]                 # both stores; show <id|repo> for one
-python3 pipeline/experiments.py verdict 20261024-kv-q8 exp-20261024-kv-q8   # run by the procedure
+python3 pipeline/experiments.py record 20261024-kv-q8 exp-20261024-kv-q8    # run by the procedure
 ```
 
 After a final status a note goes to the wiki inbox (`[wiki] inbox`) and
-`[experiments] verdict_command`, if set, runs with the id (a repo, for a model) as its last
-argument, e.g. a script that posts the verdict to your chat.
+`[experiments] result_command`, if set, runs with the id (a repo, for a model) as its last
+argument, e.g. a script that posts the results to your chat.
 
 ## Five rules for running an agent unattended
 

@@ -54,21 +54,16 @@ card, do not touch the production config or unit), with these differences:
    Estonian 41/45, uncensored 11/11, thinking off 113/141; prose / tool JSON / 30k prompt 46.0 / 65.5 /
    1213 tok/s, two at once 69, follow-up time to first token 1.3 s, 25.5 GB) and with the vLLM NVFP4 test of
    the same model family (`JOURNAL.md`, "on vLLM").
-8. **Verdict:**
-   - `tested` (worth a live trial, keep the weights): graded >= 278/291 counting the uncensored section out
-     (compare the other sections with production's), Estonian >= 38/45, and clearly faster than production
-     (prose or two at once), with at least 1 × 128k context.
-   - `rejected` otherwise: **never delete weights** (the owner decides), keep the weights and the release, and keep
-     the results (the owner wants to share the numbers).
+8. **No verdict:** the owner reads the results and decides. Do not call the candidate good, bad, a fit, worth a trial or rejected, and do not recommend replacing production or not; report the numbers next to production's and what you saw (failures, speed, context, VRAM). Record a measured run as `tested`. **Never delete weights** (the owner decides; ask in the report if disk is short): keep the weights, the config and the results. Keep the capy release too.
 9. **Write up** in `$EVAL/JOURNAL.md`: a section `## <date> — <model> on capy-flash` above the older ones:
    question, setup with the exact command, context that fit, table against production (and vLLM), per
-   section, verdict. Add a short paragraph "For the capy-flash thread" with the speed numbers in plain
+   section, factual observations (no verdict). Add a short paragraph "For the capy-flash thread" with the speed numbers in plain
    English (decode, prefill at 30k, two at once, follow-up latency, VRAM, MTP acceptance, cards: 2 × RTX
    5060 Ti 16 GB, PCIe, no P2P assumptions), so the owner can post them. Then
    `python3 tools/results_table.py --write`.
 10. **Commit and push** in `$EVAL` (JOURNAL.md, README.md, results JSONs; the leak check must pass), message
-    `Test <model> on capy-flash against prod: <verdict>`. No weights, logs or secrets.
-11. **Record:** `$CANDIDATES set <repo> <tested|rejected|failed> '<summary>'`, in `$SUMMARY_LANGUAGE`, at most
+    `Test <model> on capy-flash against prod: results`. No weights, logs or secrets.
+11. **Record:** `$CANDIDATES set <repo> <tested|failed> '<summary>'`, in `$SUMMARY_LANGUAGE`, at most
     ~600 characters, starting with `capy-flash:`.
 
 If anything fails, restore production first (step 6), then record `failed` with a one-sentence reason.

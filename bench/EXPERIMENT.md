@@ -7,9 +7,10 @@ The runner has already marked the experiment `running`.
 
 An experiment changes one thing about how production's model is served (a server argument, the
 KV cache type, sampling, a llama.cpp build, another backend) and measures it with the same bench
-suite as production's baseline. **The verdict is not yours:** `$EXPERIMENTS verdict` computes it in
-code from the result JSON and the spec's pass rule. You build the variant, run the suite and the
-spec's checks, and report what you saw.
+suite as production's baseline. **There is no verdict:** the owner reads the results and decides.
+You build the variant, run the suite and the spec's checks, record the numbers next to
+production's (`$EXPERIMENTS record`) and report what you saw. Never call the result good, bad,
+beneficial, a pass or a fail, and never recommend adopting or dropping the variant.
 
 The runner's prompt gives the experiment id, its spec as JSON between `<<<SPEC` and `SPEC>>>`,
 and ends with this machine's settings (from `local.toml`), used here by name: `$EVAL`,
@@ -19,7 +20,7 @@ and ends with this machine's settings (from `local.toml`), used here by name: `$
 The only store commands you use:
 
 ```bash
-$EXPERIMENTS verdict <id> exp-<id>                # after the suite: the code-checked verdict
+$EXPERIMENTS record <id> exp-<id>                 # after the suite: the numbers next to the baseline's
 $EXPERIMENTS set <id> failed '<one-sentence reason>'   # when the variant could not be measured
 ```
 
@@ -73,29 +74,29 @@ $EXPERIMENTS set <id> failed '<one-sentence reason>'   # when the variant could 
    `--only` and the same label.
    The default run includes the extra sections (`bench/cases_v2.py`, `bench/cases_private.py`: robust, longagent,
    estonian_free, vision, replay, cron_replay, ctx). They land under the result file's `extra` key and do
-   not touch the core totals or the verdict. Sections the server cannot run (no vision, no Estonian checker,
+   not touch the core totals. Sections the server cannot run (no vision, no Estonian checker,
    no private fixtures) print `skipped`: that is fine, say which in the journal.
    Then run each of the spec's `checks` against the variant server
    and note what it showed. Note the VRAM use (`nvidia-smi`) while it serves.
 6. **Restore production:** `$SERVE stop exp-<id>` (and `--backend <variant.backend>`), then
    `$START_PRODUCTION || $ENSURE_PRODUCTION`. Check that `curl -s $PRODUCTION_URL/health` shows ok
    and that one chat completion answers, before going on.
-7. **Verdict:** `$EXPERIMENTS verdict <id> exp-<id>`. It compares `$RESULTS/exp-<id>.json` with
-   `$RESULTS/$BASELINE.json` by the spec's pass rule and stores `beneficial`, `not-beneficial` or
-   `failed` (e.g. "baseline suite differs"); keep its one-line output. Do not set
-   `beneficial` / `not-beneficial` yourself, and do not rerun the suite to get another verdict.
+7. **Record:** `$EXPERIMENTS record <id> exp-<id>`. It puts the metrics of `$RESULTS/exp-<id>.json`
+   next to `$RESULTS/$BASELINE.json`'s (variant, baseline, delta, ratio) and stores `done`, or
+   `failed` (e.g. "baseline suite differs"); keep its one-line output. Do not rerun the suite to get
+   other numbers.
 8. **Write it up** in `$EVAL/JOURNAL.md`: a section `## <date> — experiment <id>: <title>` above
    the older ones: the hypothesis, the variant (the changed arguments, build, backend), the
-   verdict line and its metrics against the baseline, what the checks showed, VRAM, and short
-   takeaways. Add a line per extra section (passed/total, from `extra` in the result file) next to the
+   metrics against the baseline (a table), what the checks showed, VRAM, and short factual
+   observations (what moved and by how much). No verdict and no recommendation. Add a line per extra section (passed/total, from `extra` in the result file) next to the
    baseline's, when `$RESULTS/$BASELINE.json` has an `extra` key; if it has none, say that there is no
    baseline for the extras yet. The README results table is for models; leave it alone.
 9. **Commit and push** in `$EVAL`: `results/exp-<id>.json` and `JOURNAL.md`, message
-   `Experiment <id>: <verdict>`. The pre-commit leak check must pass; never bypass it. Then
+   `Experiment <id>: results`. The pre-commit leak check must pass; never bypass it. Then
    `git push`. In `$SERVING`, commit `models.d/exp-<id>.conf.sh` (message
    `Config for experiment <id>`) and push; no weights, logs or secrets.
 
-**Never delete weights or converted artifacts** (`models/*`), whatever the verdict or the result:
+**Never delete weights or converted artifacts** (`models/*`), whatever the result:
 the owner decides. If disk is short, say so in the report. Nothing in this procedure removes them.
 
 If anything fails along the way, restore production first (step 6), then

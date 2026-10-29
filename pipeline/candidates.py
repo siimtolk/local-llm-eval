@@ -6,12 +6,14 @@ programs may write it too (e.g. a chat bot recording poll votes); they must take
 file (<store>.lock, fcntl.flock).
 
 Status: proposed (offered in the report's poll, not ticked yet) -> pending -> downloading -> downloaded
-        -> testing -> tested | rejected | skipped | failed
+        -> testing -> tested | skipped | failed
+        (rejected: the old name of tested from when the test gave a verdict; `set ... rejected` stores tested.
+        No verdict now: the owner reads the results and decides.)
 
 Usage: candidates.py list
        candidates.py next                                    (oldest pending as JSON, or nothing)
        candidates.py set <repo> <status> ['<summary for the morning report>']
-                                                             (tested/rejected/failed: also [experiments] verdict_command)
+                                                             (tested/failed: also [experiments] result_command)
        candidates.py index                                   (store what the latest judge briefs recommended)
        candidates.py vote <poll id> '<JSON list of ticked options>'   (from the chat bridge)
        candidates.py votes <inbox file>                       (apply and clear queued votes)
@@ -256,11 +258,11 @@ def main():
                 print(json.dumps({"repo": repo} | c, ensure_ascii=False))
     elif len(args) in (3, 4) and args[0] == "set" and args[2] in STATUSES and valid_repo(args[1]):
         try:
-            update(args[1], status=args[2], **({"summary": args[3].strip()[:1000]} if len(args) == 4 else {}))
+            update(args[1], status="tested" if args[2] == "rejected" else args[2], **({"summary": args[3].strip()[:1000]} if len(args) == 4 else {}))
         except KeyError:
             sys.exit(f"candidates: no candidate {args[1]}")
         import experiments  # here: experiments imports this module
-        experiments.model_finished(args[1], args[2])  # [experiments] verdict_command, on a final status
+        experiments.model_finished(args[1], args[2])  # [experiments] result_command, on a final status
     elif args == ["index"]:
         index()
     elif len(args) == 3 and args[0] == "vote":

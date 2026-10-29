@@ -61,21 +61,17 @@ card, do not touch the production config or unit), with these differences:
    46.0 / 65.5 / 1213 tok/s, two at once 69, follow-up time to first token 1.3 s, 25.5 GB), and, when
    `variant_of` was tested, with that GGUF build's results (`$CANDIDATES list`, `JOURNAL.md`): the same
    model on llama.cpp vs vLLM is the most useful comparison.
-9. **Verdict:**
-   - `tested` (worth a live trial, keep the weights): graded >= 278/291 AND Estonian >= 38/45 AND
-     uncensored >= 10/11 AND clearly faster than production (single-request prose or two at once),
-     with at least 1 x 128k plus a second slot.
-   - `rejected` otherwise: **never delete weights** (the owner decides), keep the weights and the results.
+9. **No verdict:** the owner reads the results and decides. Do not call the candidate good, bad, a fit, worth a trial or rejected, and do not recommend replacing production or not; report the numbers next to production's and what you saw (failures, speed, context, VRAM). Record a measured run as `tested`. **Never delete weights** (the owner decides; ask in the report if disk is short): keep the weights, the config and the results.
 10. **Write up** in `$EVAL/JOURNAL.md`: a section `## <date> — <model> on vLLM` above the
     older ones, in the style of the vLLM experiments: question, setup with the exact command,
-    context that fit, table against production (and the GGUF twin), per section, verdict. Then
+    context that fit, table against production (and the GGUF twin), per section, factual observations (no verdict). Then
     `python3 tools/results_table.py --write`.
 11. **Commit and push** in `$EVAL` (JOURNAL.md, README.md, results JSONs; the leak check must
-    pass), message `Test <model> on vLLM against prod: <verdict>`. A documented change to the
+    pass), message `Test <model> on vLLM against prod: results`. A documented change to the
     serving repo's `bin/serve_vllm.sh` is committed and pushed there. No weights, logs or secrets.
-12. **Record:** `$CANDIDATES set <repo> <tested|rejected|failed> '<summary>'`,
+12. **Record:** `$CANDIDATES set <repo> <tested|failed> '<summary>'`,
     in `$SUMMARY_LANGUAGE`, at most ~600 characters, starting with `vLLM:`, e.g. (Estonian)
-    `vLLM: 279/291 (prod 283), eesti 38/45 (41), tsensuurita 11/11, proosa 59 tok/s (46), kaks korraga 117 (69), 2 x 128k. Väärib proovimist.`
+    `vLLM: 279/291 (prod 283), eesti 38/45 (41), tsensuurita 11/11, proosa 59 tok/s (46), kaks korraga 117 (69), 2 x 128k.`
 
 If anything fails, restore production first (step 7), then record `failed` with a one-sentence reason.
 Whatever happens, production must be serving on `$PRODUCTION_URL` and `$VLLM_CONTAINER` must be stopped when you finish.

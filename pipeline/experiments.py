@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Experiments: anything tested against production with the bench suite and a pass rule in code.
+"""Experiments: anything measured against production with the bench suite. No verdict: the results
+are recorded next to production's and the owner decides what they mean.
 
 Three types. A `model` experiment is a candidate of the candidates store (candidates.py, unchanged:
 add, fetch, votes and the report work as before). `config` (e.g. a KV cache type, sampling, a newer
@@ -7,13 +8,13 @@ llama.cpp build) and `engine` (another backend) experiments live in their own st
 [paths] experiments, under the same lock helper (candidates.locked_json). They run on the test
 port with the same suite (bench/EXPERIMENT.md) and never change production.
 
-Status: planned -> approved -> queued -> running -> beneficial | not-beneficial | failed, plus dropped.
+Status: planned -> approved -> queued -> running -> done | failed, plus dropped.
 A candidate shows as a model experiment with its status mapped (UNIFIED).
 
-The verdict of a config/engine experiment is computed here, never by the agent: `verdict` reads
-the variant's result JSON and the [production] baseline's, computes the metrics and applies the
-spec's pass rule (min_delta / max_delta: variant - baseline, min_ratio / max_ratio: variant /
-baseline). Results of different suites are never compared: the verdict is then `failed`.
+`record` reads the variant's result JSON and the [production] baseline's and stores the metrics side
+by side (variant, baseline, delta, ratio) under "comparison": the spec's metrics plus every extra and
+own-traffic section either has. Nothing passes or fails; `done` only means it was measured. Results
+of different suites are never compared: the status is then `failed`. A spec's old `pass_rule` is ignored.
 
 Usage: experiments.py list [--json]
        experiments.py show <id|repo> [--json]
@@ -22,11 +23,13 @@ Usage: experiments.py list [--json]
        experiments.py approve <id>                         (planned -> approved)
        experiments.py drop <id> ['<reason>']
        experiments.py queue                                (every approved experiment -> queued)
-       experiments.py set <id> <status> ['<summary>']      (for the agent; not the verdict statuses)
-       experiments.py verdict <id> <result label>          (metrics, pass rule, final status)
+       experiments.py set <id> <status> ['<summary>']      (for the agent; not `done`)
+       experiments.py record <id> <result label>           (metrics against the baseline, status done)
+                                                           (`verdict` is the old name of `record`)
 
 After a final status a note goes to the wiki inbox ([wiki] inbox, optional) and
-[experiments] verdict_command, if set, runs with the id (a repo, for a model) as its last argument.
+[experiments] result_command (old name: verdict_command), if set, runs with the id (a repo, for a
+model) as its last argument.
 """
 import json
 import math
@@ -41,13 +44,14 @@ import config
 from texts import t
 
 TYPES = ("config", "engine")
-STATUSES = ("planned", "approved", "queued", "running", "beneficial", "not-beneficial", "failed", "dropped")
-FINAL = ("beneficial", "not-beneficial", "failed")
-VERDICT_ONLY = ("beneficial", "not-beneficial")  # only `verdict` sets these
+STATUSES = ("planned", "approved", "queued", "running", "done", "failed", "dropped")
+FINAL = ("done", "failed")
+RECORD_ONLY = ("done",)  # only `record` sets this
 UNIFIED = {"proposed": "planned", "pending": "approved", "downloading": "approved", "downloaded": "queued",
-           "testing": "running", "tested": "beneficial", "rejected": "not-beneficial", "skipped": "dropped",
+           "testing": "running", "tested": "done", "rejected": "done", "skipped": "dropped",
            "failed": "failed"}
 MODEL_FINAL = ("tested", "rejected", "failed")
+DEFAULT_METRICS = ["passed", "passed.estonian", "tok_s.prose", "tok_s.parallel", "ttft.long_prompt"]
 SLUG = re.compile(r"[a-z0-9-]{3,40}")
 ID = re.compile(r"\d{8}-[a-z0-9-]{3,40}")
 LABEL = re.compile(r"[A-Za-z0-9][\w.+-]{0,200}")
@@ -61,7 +65,6 @@ TRAFFIC_SECTIONS = ("replay", "cron_replay", "ctx")
 KNOWN_METRICS = ({"passed"} | {f"passed.{c}" for c in CATEGORIES} | {f"extra.{s}" for s in EXTRA_SECTIONS}
                  | {f"own_traffic.{s}" for s in TRAFFIC_SECTIONS}
                  | {f"{m}.{s}" for m in ("tok_s", "ttft") for s in SPEED_TESTS})
-OPS = ("min_delta", "max_delta", "min_ratio", "max_ratio")
 VARIANT_KEYS = ("llama_cpp", "server_args_add", "server_args_remove", "request_extra", "backend", "notes")
 BACKENDS = ("llamacpp", "vllm", "capy")
 SLOW_BACKENDS = ("vllm", "capy")  # a first start compiles kernels: the longer test slot
@@ -124,45 +127,29 @@ def metrics(result):
     return out
 
 
-def rule_text(rule):
-    return " and ".join(f"{op} {rule[op]:g}" for op in OPS if op in rule)
+def compare_one(name, v, b):
+    """One metric side by side: {"variant", "baseline", "delta", "ratio"}; a missing value stays None."""
+    both = v is not None and b is not None
+    return {"variant": v, "baseline": b, "delta": v - b if both else None, "ratio": v / b if both and b else None}
 
 
-def check(rule, variant_metrics, baseline_metrics):
-    """(passed, text) for one pass-rule condition {"metric", "min_delta" | "max_delta" | "min_ratio" |
-    "max_ratio": number, ...}; every operator given must hold. A missing value fails."""
-    name = rule["metric"]
-    v, b = variant_metrics.get(name), baseline_metrics.get(name)
+def compare_text(name, row):
+    v, b = row["variant"], row["baseline"]
     if v is None or b is None:
-        return False, f"{name}: no value ({'variant' if v is None else 'baseline'})"
-    ok, parts = True, []
-    if "min_delta" in rule or "max_delta" in rule:
-        delta = v - b
-        ok &= delta >= rule.get("min_delta", -math.inf) and delta <= rule.get("max_delta", math.inf)
-        parts.append(f"delta {delta:+.4g}")
-    if "min_ratio" in rule or "max_ratio" in rule:
-        ratio = v / b if b else None
-        ok &= ratio is not None and rule.get("min_ratio", -math.inf) <= ratio <= rule.get("max_ratio", math.inf)
-        parts.append(f"ratio {ratio:.4g}" if ratio is not None else "ratio n/a (baseline 0)")
-    return bool(ok), f"{name} {v:.4g} vs {b:.4g}: {', '.join(parts)} ({rule_text(rule)})"
+        return f"{name}: no value ({'variant' if v is None else 'baseline'})"
+    parts = [f"{row['delta']:+.4g}"] + ([f"×{row['ratio']:.3g}"] if row["ratio"] is not None and not name.startswith(("passed", "extra.", "own_traffic.")) else [])
+    return f"{name} {v:.4g} vs {b:.4g} ({', '.join(parts)})"
 
 
-def evaluate(spec, variant, baseline):
-    """(status, verdict dict, reason) for a spec against two result dicts."""
-    names = list(dict.fromkeys(list(spec.get("metrics") or []) + [r["metric"] for r in spec["pass_rule"]]))
+def compare(spec, variant, baseline):
+    """(status, comparison {metric: row}, reason) for a spec against two result dicts: done, or failed
+    when the suites differ. No metric passes or fails."""
     if variant.get("suite") != baseline.get("suite"):
-        return "failed", {"metrics": {}, "rules": {}, "passed": [], "failed": []}, t("exp.suite_differs")
+        return "failed", {}, t("exp.suite_differs")
     vm, bm = metrics(variant), metrics(baseline)
-    verdict = {"metrics": {n: [vm.get(n), bm.get(n)] for n in names}, "rules": {}, "passed": [], "failed": []}
-    missing = [n for n in names if vm.get(n) is None or bm.get(n) is None]
-    for i, rule in enumerate(spec["pass_rule"]):
-        key = rule["metric"] if rule["metric"] not in verdict["rules"] else f"{rule['metric']}#{i + 1}"
-        ok, text = check(rule, vm, bm)
-        verdict["rules"][key] = text
-        verdict["passed" if ok else "failed"].append(key)
-    if missing:
-        return "failed", verdict, t("exp.missing_metric", names=", ".join(missing))
-    return ("beneficial" if not verdict["failed"] else "not-beneficial"), verdict, ""
+    sections = sorted(n for n in set(vm) | set(bm) if n.startswith(("extra.", "own_traffic.")) and n in vm)
+    names = list(dict.fromkeys(list(spec.get("metrics") or DEFAULT_METRICS) + sections))
+    return "done", {n: compare_one(n, vm.get(n), bm.get(n)) for n in names}, ""
 
 
 def _number(x):
@@ -206,14 +193,6 @@ def validate(spec):
     names = spec.get("metrics", [])
     if not isinstance(names, list) or not all(isinstance(m, str) for m in names):
         return t("exp.bad_spec", why="metrics: a list of names")
-    rules = spec.get("pass_rule")
-    if not isinstance(rules, list) or not rules:
-        return t("exp.bad_rule", why="pass_rule: a non-empty list")
-    for rule in rules:
-        if not isinstance(rule, dict) or not isinstance(rule.get("metric"), str) or set(rule) - {"metric", *OPS} \
-                or not any(op in rule for op in OPS) or not all(_number(rule[op]) for op in OPS if op in rule):
-            return t("exp.bad_rule", why=json.dumps(rule, ensure_ascii=False)[:200])
-        names = names + [rule["metric"]]
     unknown = [m for m in names if m not in KNOWN_METRICS]
     if unknown:
         return t("exp.bad_metric", names=", ".join(sorted(set(unknown)))[:200])
@@ -252,10 +231,10 @@ def add_spec(spec):
     eid = f"{config.now():%Y%m%d}-{spec['slug']}"
     variant = {k: spec["variant"][k] for k in VARIANT_KEYS if k in spec["variant"]}
     record = {"id": eid, "type": spec["type"], "title": spec["title"].strip(), "hypothesis": spec.get("hypothesis", ""),
-              "variant": variant, "metrics": spec.get("metrics") or ["passed"], "pass_rule": spec["pass_rule"],
+              "variant": variant, "metrics": spec.get("metrics") or DEFAULT_METRICS,
               "checks": spec.get("checks", []), "cost": spec.get("cost", {}), "status": "planned",
               "priority": spec.get("priority", 0), "source": str(spec.get("source", ""))[:200],
-              "created": candidates.now(), "updated": candidates.now(), "result": "", "verdict": {}, "summary": ""}
+              "created": candidates.now(), "updated": candidates.now(), "result": "", "comparison": {}, "summary": ""}
     with store() as data:
         if eid in data["experiments"]:
             return False, t("exp.exists", id=eid)
@@ -287,9 +266,9 @@ def queue():
     return ids
 
 
-def verdict(eid, label):
-    """Compute and store the verdict of a config/engine experiment from results/<label>.json and the
-    baseline: (True, one-line summary) or (False, refusal)."""
+def record(eid, label):
+    """Store the results of a config/engine experiment from results/<label>.json next to the baseline's:
+    (True, one-line summary) or (False, refusal)."""
     if not LABEL.fullmatch(label or "") or ".." in label:
         return False, t("exp.bad_label", label=str(label)[:100])
     with store(readonly=True) as data:
@@ -297,7 +276,7 @@ def verdict(eid, label):
     if e is None:
         return False, t("exp.unknown", id=eid[:100])
     if e["status"] in ("planned", "dropped"):
-        return False, t("exp.bad_move", id=eid, status=e["status"], to="verdict")
+        return False, t("exp.bad_move", id=eid, status=e["status"], to="record")
     results, baseline = config.path("results"), config.get("production", "baseline", "")
     try:
         variant = json.loads((results / f"{label}.json").read_text())
@@ -307,25 +286,24 @@ def verdict(eid, label):
     else:
         why = "" if base is not None else t("exp.no_result", err=f"baseline {baseline!r}")
     if why:
-        status, v = "failed", {"metrics": {}, "rules": {}, "passed": [], "failed": []}
+        status, rows = "failed", {}
     else:
-        status, v, why = evaluate(e, variant, base)
-    line = t("exp.verdict", id=eid, status=status, passed=len(v["passed"]), total=len(v["passed"]) + len(v["failed"]),
-             why=f" — {why}" if why else "")
-    summary = (why or "; ".join(v["rules"].values()))[:1000]
+        status, rows, why = compare(e, variant, base)
+    summary = (why or "; ".join(compare_text(n, r) for n, r in rows.items()))[:1000]
     with store() as data:
-        data["experiments"][eid].update(status=status, verdict=v, result=label, summary=summary,
+        data["experiments"][eid].pop("verdict", None)
+        data["experiments"][eid].update(status=status, comparison=rows, result=label, summary=summary,
                                         updated=candidates.now())
-        record = dict(data["experiments"][eid])
-    finished(record)
-    return True, line
+        rec = dict(data["experiments"][eid])
+    finished(rec)
+    return True, t("exp.recorded", id=eid, status=status, summary=summary)
 
 
 # --- reporting ------------------------------------------------------------------------------------
 
-def verdict_hook(key):
-    """[experiments] verdict_command <key>: argument list, no shell, 60 s; failures are logged, never raised."""
-    cmd = config.get("experiments", "verdict_command", []) or []
+def result_hook(key):
+    """[experiments] result_command <key>: argument list, no shell, 60 s; failures are logged, never raised."""
+    cmd = config.get("experiments", "result_command", []) or config.get("experiments", "verdict_command", []) or []
     argv = shlex.split(cmd) if isinstance(cmd, str) else [str(a) for a in cmd]
     if not argv:
         return
@@ -333,26 +311,26 @@ def verdict_hook(key):
     try:
         run = subprocess.run(argv + [key], capture_output=True, text=True, timeout=60, stdin=subprocess.DEVNULL)
         if run.returncode:
-            print(f"experiments: verdict_command exit {run.returncode}: {(run.stderr or run.stdout).strip()[-300:]}",
+            print(f"experiments: result_command exit {run.returncode}: {(run.stderr or run.stdout).strip()[-300:]}",
                   file=sys.stderr)
     except (OSError, subprocess.SubprocessError) as err:
-        print(f"experiments: verdict_command failed: {err}", file=sys.stderr)
+        print(f"experiments: result_command failed: {err}", file=sys.stderr)
 
 
 def finished(record):
-    """A config/engine experiment reached a final status: wiki note and verdict_command."""
+    """A config/engine experiment reached a final status: wiki note and result_command."""
     try:
         import wiki_note
         wiki_note.send_experiment(record)
     except OSError as err:
         print(f"experiments: wiki note failed: {err}", file=sys.stderr)
-    verdict_hook(record["id"])
+    result_hook(record["id"])
 
 
 def model_finished(repo, status):
     """candidates.py set calls this: a model experiment reports back too (its wiki note comes from report.py)."""
     if status in MODEL_FINAL:
-        verdict_hook(repo)
+        result_hook(repo)
 
 
 def line(eid, e):
@@ -409,14 +387,14 @@ def main():
     elif args == ["queue"]:
         print(t("exp.queued", n=len(ids := queue()), ids=", ".join(ids) or "-"))
     elif len(args) in (3, 4) and args[0] == "set":
-        if args[2] not in STATUSES or args[2] in VERDICT_ONLY:
+        if args[2] not in STATUSES or args[2] in RECORD_ONLY:
             sys.exit(t("exp.set_status", status=args[2][:30]))
         ok, out = transition(args[1], args[2], STATUSES,
                              **({"summary": args[3].strip()[:1000]} if len(args) == 4 else {}))
         if not ok:
             sys.exit(out)
-    elif len(args) == 3 and args[0] == "verdict":
-        ok, out = verdict(args[1], args[2])
+    elif len(args) == 3 and args[0] in ("record", "verdict"):
+        ok, out = record(args[1], args[2])
         print(out)
         sys.exit(0 if ok else 1)
     else:
