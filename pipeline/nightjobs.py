@@ -70,12 +70,29 @@ def sh(cmd, cwd=None, timeout=120):
         return ""
 
 
+def production_model_id():
+    """The served model id (first entry of production's /v1/models), else serving.production_model.
+
+    Servers that require a model field (capy-flash) reject requests without it; others ignore it."""
+    base = config.get("serving", "production_url").rstrip("/")
+    key = Path(os.path.expanduser(config.get("serving", "api_key_file"))).read_text().strip()
+    try:
+        req = urllib.request.Request(base + "/v1/models", headers={"Authorization": f"Bearer {key}"})
+        out = json.loads(urllib.request.urlopen(req, timeout=15).read())
+        models = out.get("data") or []
+        if models and models[0].get("id"):
+            return models[0]["id"]
+    except Exception:  # noqa: BLE001 - production may be momentarily down; fall back to the configured name
+        pass
+    return config.get("serving", "production_model")
+
+
 def llm(prompt, system="", max_tokens=6000, temperature=0.3, timeout=1500):
     """One chat completion from the production model on 8080 (thinking as the server's default)."""
     key = Path(os.path.expanduser(config.get("serving", "api_key_file"))).read_text().strip()
     url = config.get("serving", "production_url").rstrip("/") + "/v1/chat/completions"
     msgs = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": prompt}]
-    body = json.dumps({"messages": msgs, "max_tokens": max_tokens, "temperature": temperature}).encode()
+    body = json.dumps({"messages": msgs, "model": production_model_id(), "max_tokens": max_tokens, "temperature": temperature}).encode()
     last = None
     for attempt in (1, 2):
         try:
@@ -449,6 +466,7 @@ def regression(ctx):
     label = f"regress-{config.now():%Y%m%d-%H%M}"
     left = max(int((ctx.stop - config.now()).total_seconds()), 600)
     cmd = [sys.executable, str(config.ROOT / "bench" / "bench.py"), "--label", label, "--results-dir", str(out), "--reps", "2",
+           "--model", production_model_id(),
            "--only", "tools,extract,instruct,estonian,speed"]
     try:
         run = subprocess.run(cmd, capture_output=True, text=True, timeout=left)
