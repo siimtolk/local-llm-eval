@@ -5,6 +5,26 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## 2026-10-30 — experiment 20261030-temp-07: Sampling temperature 0.7
+
+- **Hypothesis:** a lower temperature may raise tool-use and code scores.
+- **Variant:** production's llama.cpp config (RVN IQ4_XS, 2 GPU, MTP) unchanged except the request body, which carries `{"temperature": 0.7}` (production's config has `--temp 1.0`). No server arguments, build or backend changed. Config: `models.d/exp-20261030-temp-07.conf.sh`.
+- **Results vs baseline (`$BASELINE`):**
+
+| metric | variant | baseline | delta | ratio |
+|---|---|---|---|---|
+| passed | 290 | 290 | +0 | |
+| tok_s.prose | 45.91 | 77.7 | -31.79 | x0.591 |
+| tok_s.parallel | 38.05 | 90.02 | -51.97 | x0.423 |
+| ttft.long_prompt (s) | 24.66 | 10.53 | +14.12 | x2.34 |
+
+- **Core sections (passed/total):** tools 42/42, agent 46/48, reason 30/30, extract 15/15, code 22/24 (eval_expr, next_cron failed; 1 out of tokens), hard 47/48, instruct 20/21, judge 18/18, estonian 39/45, uncensored 11/11.
+- **Extras (variant):** robust 63/72, longagent 19/21, estonian_free 33/39. The baseline has no `extra` key, so there is no baseline for the extras yet. replay, cron_replay and ctx are not in the result (no values recorded).
+- **Checks:** none in the spec.
+- **VRAM while serving:** 11415 / 14039 / 1484 MiB on the three GPUs.
+- **Observations:** the pass count equals the baseline's (290). Prose speed, parallel throughput and long-prompt TTFT are far from the baseline's. Speed at depth: decode 40.9 tok/s after 30k (MTP accept 60%), 25.6 after 90k (48%). Other measurements in the same session ran while the machine state may differ from the baseline's night (the speed gap is large for a sampling-only change); the cause was not investigated.
+- **Production note:** at restore, `serve-llm` came up serving Qwen3.8-27B-QUASAR on capy-flash v0.7.7 (per the latest serving commit), not the RVN model the baseline was measured on. It was healthy and answered a chat completion.
+
 ## 2026-10-29 — experiment 20261029-extras-vllm-heretic-rerun: Extra bench sections, rerun: replay, cron_replay, ctx for Heretic ARA NVFP4 on vLLM 0.32 (tp2, MTP 3)
 
 - **Hypothesis:** the first run gave robust, longagent and estonian_free but no replay, cron_replay or ctx. How does the vLLM Heretic build do on those against production?
