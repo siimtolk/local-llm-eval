@@ -5,6 +5,25 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## 2026-10-31 — experiment 20261031-top-k-40: Sampling top_k 40, min_p 0.05
+
+- **Hypothesis:** different truncation may help instruction following.
+- **Variant:** production's llama.cpp config (RVN IQ4_XS, 2 GPU, MTP) unchanged except the request body, which carries `{"top_k": 40, "min_p": 0.05}` (production's config has `--top-k 20 --min-p 0.0`). No server arguments, build or backend changed. Config: `models.d/exp-20261031-top-k-40.conf.sh`.
+- **Results vs baseline (`$BASELINE`):**
+
+| metric | variant | baseline | delta | ratio |
+|---|---|---|---|---|
+| passed | 295 | 290 | +5 | |
+| tok_s.prose | 45.97 | 77.7 | -31.73 | x0.592 |
+| tok_s.parallel | 36.7 | 90.02 | -53.32 | x0.408 |
+| ttft.long_prompt (s) | 24.71 | 10.53 | +14.18 | x2.35 |
+
+- **Core sections (passed/total):** tools 42/42, agent 48/48, reason 30/30, extract 15/15, code 24/24, hard 47/48 (very_long_context failed), instruct 21/21, judge 18/18, estonian 39/45 (et_genitive, et_illative, et_jalg, et_number_words, et_tutar failed), uncensored 11/11 (1 out of tokens).
+- **Extras (variant):** robust 64/72, longagent 19/21, estonian_free 27/39; replay 104/180 (4 out of tokens), cron_replay 21/36 (14 out of tokens), ctx 34/45. `$BASELINE`'s result file has no `extra` key, so there is no baseline for the extras yet. No section was skipped. The suite took 13085 s (cron_replay median 93 s per case).
+- **Checks:** none in the spec.
+- **VRAM while serving:** 11435 / 14069 / 1484 MiB on the three GPUs (11415 / 14039 / 1484 MiB at start).
+- **Observations:** passed is +5 against the baseline (the variant runs on llama.cpp, the baseline on capy, so speed and TTFT differences reflect the engine as well as the sampling change; the 0.7-temperature run of 2026-10-30 had speeds within about 1 tok/s of these numbers). After the run, the production service (`serve-llm`) came back healthy but is configured as capy QUASAR (`--model-id Qwen3.8-27B-QUASAR`), so a chat request using `$PRODUCTION_MODEL` as model id returned `model_not_found`; with the served id it answered. I did not touch the service.
+
 ## 2026-10-30 — experiment 20261030-temp-07: Sampling temperature 0.7
 
 - **Hypothesis:** a lower temperature may raise tool-use and code scores.
