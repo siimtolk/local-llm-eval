@@ -75,8 +75,8 @@ def production_model_id():
 
     Servers that require a model field (capy-flash) reject requests without it; others ignore it."""
     base = config.get("serving", "production_url").rstrip("/")
-    key = Path(os.path.expanduser(config.get("serving", "api_key_file"))).read_text().strip()
     try:
+        key = Path(os.path.expanduser(config.get("serving", "api_key_file"))).read_text().strip()
         req = urllib.request.Request(base + "/v1/models", headers={"Authorization": f"Bearer {key}"})
         out = json.loads(urllib.request.urlopen(req, timeout=15).read())
         models = out.get("data") or []
