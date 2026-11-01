@@ -107,6 +107,16 @@ class TestNightJobs(unittest.TestCase):
             up.return_value = self._resp({"data": []})
             self.assertEqual(nightjobs.production_model_id(), "production")
 
+    def test_production_model_id_falls_back_when_key_file_missing(self):
+        expected = config.get("serving", "production_model")
+        real_get = config.get
+        def fake_get(section, key, default=None):
+            if section == "serving" and key == "api_key_file":
+                return str(self.tmp / "definitely-missing-api-key.txt")
+            return real_get(section, key, default)
+        with mock.patch.object(config, "get", side_effect=fake_get):
+            self.assertEqual(nightjobs.production_model_id(), expected)
+
     def test_llm_sends_production_model_id_in_request_body(self):
         captured = {}
         def fake_urlopen(req, timeout=None):
