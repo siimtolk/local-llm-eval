@@ -42,7 +42,7 @@ $EXPERIMENTS set <id> failed '<one-sentence reason>'   # when the variant could 
   experiment) is recorded `failed` with that reason.
 - **Never edit production config files**: not `$SERVING/$PRODUCTION_CONFIG`, not the production
   service, not the production llama.cpp build. The variant gets its own config. Write only in
-  `$SERVING/models.d/exp-<id>.conf.sh`, `$SERVING/secrets/exp-<id>`, `$SERVING/logs/` and `$EVAL`.
+  `$SERVING/models.d/exp-<id>.conf.sh`, `$SERVING/secrets/exp-<id>`, `$SERVING/logs/` (the capy variant script too) and `$EVAL`.
 - No installs. A `variant.llama_cpp` build dir must already exist under `$SERVING`; an engine
   experiment uses a backend `$SERVE` already supports (`llamacpp`, `vllm`, `capy`).
 
@@ -50,7 +50,23 @@ $EXPERIMENTS set <id> failed '<one-sentence reason>'   # when the variant could 
 
 1. **Read the spec** from the prompt: `variant` (`llama_cpp`, `server_args_add`,
    `server_args_remove`, `request_extra`, `backend`), `metrics`, `pass_rule`, `checks`.
-2. **Variant config:** copy `$SERVING/$PRODUCTION_CONFIG` to `$SERVING/models.d/exp-<id>.conf.sh`.
+2. **Which production?** Read `$SERVING/switch-capy/serve-capy-prod.sh` and `systemctl cat serve-llm | grep ExecStart`.
+   If the unit's `ExecStart` runs `switch-capy/serve-capy-prod.sh`, production is **capy-flash** and the
+   baseline is a capy run: follow **2a** (and the capy notes in steps 4–6). Otherwise production is llama.cpp: follow **2b**.
+   Variant and baseline must share the engine; never start the llama.cpp config when production is capy.
+
+   **2a. Variant script (capy production).** Derive it from the production script, do not retype its flags: copy
+   `$SERVING/switch-capy/serve-capy-prod.sh` to `$SERVING/logs/exp-<id>-serve.sh` (it must stay executable) and in the copy:
+   set `NINFER_HOST=127.0.0.1 NINFER_PORT=$TEST_PORT`; set `LOG=logs/capy-exp-<id>.log`; delete the lines that start the
+   log tailer (`capy_log_textfile.py`) and that write `monitoring/targets/primary.json` (they would overwrite production's
+   monitoring); change `NINFER_MODEL_ID` only if the spec says so. Then, on the final `exec` line, drop every argument listed in
+   `variant.server_args_remove` (a flag with its value) and append `variant.server_args_add` unchanged. Add a comment at the top:
+   `# experiment <id>: <title> (from switch-capy/serve-capy-prod.sh)`. The copy keeps production's weights, engine release
+   (`RELEASE`), API key file and every other flag. Only flags that `capy-flash/<release>/bin/ninfer-serve --help` lists are valid;
+   a flag it rejects (llama.cpp flags such as `--ubatch-size`, `--cache-type-k`, `--cache-reuse`) means the spec is wrong: record `failed`.
+   Do not copy the script to anywhere but `$SERVING/logs/`.
+
+   **2b. Variant config (llama.cpp production).** Copy `$SERVING/$PRODUCTION_CONFIG` to `$SERVING/models.d/exp-<id>.conf.sh`.
    In the copy: set `MODEL_PORT=$TEST_PORT`, drop every argument listed in
    `variant.server_args_remove` (an argument with its value), append `variant.server_args_add`
    unchanged, and add a comment at the top: `# experiment <id>: <title> (from <production config>)`.
@@ -62,12 +78,18 @@ $EXPERIMENTS set <id> failed '<one-sentence reason>'   # when the variant could 
    `MMPROJ_FILE` as plain file names: a `../` path through the missing folder cannot resolve.
 3. **Stop production:** `$STOP_PRODUCTION` (exactly that, as its own command). It waits until the
    GPUs are free.
-4. **Serve the variant:** `$SERVE start exp-<id> --port $TEST_PORT`, plus
+4. **Serve the variant.** Capy production: run `setsid nohup $SERVING/logs/exp-<id>-serve.sh > /dev/null 2>&1 &` from `$SERVING`
+   (the script logs to `logs/capy-exp-<id>.log`; remember its PID), and wait until
+   `curl -s -H "Authorization: Bearer $(cat $SERVING/secrets/$PRODUCTION_MODEL/api_key.txt)" http://127.0.0.1:$TEST_PORT/health` answers
+   (never print the key; first start can take 10 min). The served model id is in the log. llama.cpp production:
+   `$SERVE start exp-<id> --port $TEST_PORT`, plus
    `--llama-cpp $SERVING/<variant.llama_cpp>` when the spec names a build and
    `--backend <variant.backend>` for an engine experiment. Wait for
    `$SERVE health exp-<id> --port $TEST_PORT` to exit 0 (read `$SERVING/logs/exp-<id>.log` when it
    does not come up). If it does not come up, go to step 6 and record `failed`.
-5. **Benchmark** (from `$EVAL`), the same suite as the baseline, label `exp-<id>`:
+5. **Benchmark** (from `$EVAL`), the same suite as the baseline, label `exp-<id>`. Capy production: the baseline sent
+   `reasoning_effort` and a model id (see `request_extra` in `$RESULTS/$BASELINE.json`); send the same effort with
+   `--reasoning-effort <that value>` and the id the variant's log prints with `--model <id>`, and let `variant.request_extra` override it. The command:
    `bench/bench.py --label exp-<id> --base-url http://127.0.0.1:$TEST_PORT --api-key-file $SERVING/secrets/exp-<id>/api_key.txt --request-extra '<variant.request_extra as JSON>' > $SERVING/logs/bench-exp-<id>.log 2>&1`
    (leave out `--request-extra` when it is empty). Run it as a background command with a time
    limit that covers it (up to 110 min); if it is cut off, rerun only the missing sections with
@@ -78,7 +100,8 @@ $EXPERIMENTS set <id> failed '<one-sentence reason>'   # when the variant could 
    no private fixtures) print `skipped`: that is fine, say which in the journal.
    Then run each of the spec's `checks` against the variant server
    and note what it showed. Note the VRAM use (`nvidia-smi`) while it serves.
-6. **Restore production:** `$SERVE stop exp-<id>` (and `--backend <variant.backend>`), then
+6. **Restore production:** stop the variant (capy production: `kill -- -<PID>` of the variant script's process group; check with `nvidia-smi` that the GPUs are free; llama.cpp
+   production: `$SERVE stop exp-<id>`, plus `--backend <variant.backend>`), then
    `$START_PRODUCTION || $ENSURE_PRODUCTION`. Check that `curl -s $PRODUCTION_URL/health` shows ok
    and that one chat completion answers, before going on.
 7. **Record:** `$EXPERIMENTS record <id> exp-<id>`. It puts the metrics of `$RESULTS/exp-<id>.json`
@@ -93,8 +116,9 @@ $EXPERIMENTS set <id> failed '<one-sentence reason>'   # when the variant could 
    baseline for the extras yet. The README results table is for models; leave it alone.
 9. **Commit and push** in `$EVAL`: `results/exp-<id>.json` and `JOURNAL.md`, message
    `Experiment <id>: results`. The pre-commit leak check must pass; never bypass it. Then
-   `git push`. In `$SERVING`, commit `models.d/exp-<id>.conf.sh` (message
-   `Config for experiment <id>`) and push; no weights, logs or secrets.
+   `git push`. In `$SERVING`, commit `models.d/exp-<id>.conf.sh` (llama.cpp production; message
+   `Config for experiment <id>`) and push; no weights, logs or secrets. A capy variant script lives in `logs/` and is not
+   committed: put the changed flags in the journal entry instead.
 
 **Never delete weights or converted artifacts** (`models/*`), whatever the result:
 the owner decides. If disk is short, say so in the report. Nothing in this procedure removes them.

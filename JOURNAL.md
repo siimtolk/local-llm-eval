@@ -5,6 +5,12 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## 2026-11-01 — config experiments target capy; tuning plan redone (ticket 153)
+
+- **Why:** production has been capy-flash (QUASAR NVFP4) since 2026-10-29 and `baseline` is the capy run, but `config` experiments still copied the llama.cpp production config, so `20261030-temp-07` and `20261031-top-k-40` compared two engines (see their entries). Siim decided to target capy (morning brief 488070).
+- **Procedure:** `bench/EXPERIMENT.md` step 2 now checks whether the `serve-llm` unit runs `switch-capy/serve-capy-prod.sh`; if so the variant script is a copy of that file (port, log, no monitoring side effects) with `server_args_remove`/`server_args_add` applied to its `exec` line, started and stopped directly, with the baseline's `reasoning_effort` and model id sent by the bench. The llama.cpp path (2b) stays for a llama.cpp production.
+- **`TUNING_PLAN`:** the llama.cpp-only variants (`--ubatch-size`, `--batch-size`, KV q8_0, `--cache-reuse`) are dropped and kept as history in a comment; temp 0.7 and top_k 40 / min_p 0.05 are queued again as `capy-temp-07`, `capy-top-k-40`, plus `capy-effort-medium`, `capy-think-budget-3000`, `capy-lease-4096`, `capy-draft-2`. Flags checked against `ninfer-serve --help` of v0.7.7. New slugs, so the `tuning-sweep` memory needs no reset. Nothing was run.
+
 ## 2026-10-31 — experiment 20261031-top-k-40: Sampling top_k 40, min_p 0.05
 
 - **Hypothesis:** different truncation may help instruction following.

@@ -68,6 +68,17 @@ class TestNightJobs(unittest.TestCase):
         self.assertEqual(ready[0][2:], ("model", "a/Model-GGUF"))
         self.assertEqual(ready[1][2:], ("job", "log-triage"))
 
+    def test_tuning_plan_is_valid_and_capy_only(self):
+        import experiments
+        slugs = [e[0] for e in nightjobs.TUNING_PLAN]
+        self.assertEqual(len(slugs), len(set(slugs)))
+        for slug, title, hyp, variant in nightjobs.TUNING_PLAN:
+            spec = {"type": "config", "slug": slug, "title": title, "hypothesis": hyp, "variant": variant,
+                    "metrics": nightjobs.METRICS, "priority": 0}
+            self.assertEqual(experiments.validate(spec), "", slug)
+            flags = variant.get("server_args_add", []) + variant.get("server_args_remove", [])
+            self.assertFalse(set(flags) & set(nightjobs.LLAMACPP_ONLY_FLAGS), slug)
+
     def test_jparse(self):
         self.assertEqual(nightjobs.jparse('text ```json\n[{"a": 1}]\n``` more'), [{"a": 1}])
         self.assertEqual(nightjobs.jparse('Sure: {"real": true} done'), {"real": True})
