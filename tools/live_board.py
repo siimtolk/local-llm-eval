@@ -37,6 +37,9 @@ EXTRAS_FOR = Path(__file__).resolve().parent / "board_extras.json"  # manual ove
 NOT_GRADED = {"uncensored"}
 EXTRA_SECTIONS = ("estonian_free", "robust", "longagent")  # result key "extra": the public, synthetic sections
 NO_EXTRAS = {"exp-20261028-kv-q8", "exp-20261029-cache-reuse"}  # result labels listed as Graded only: their extra / own_traffic rows are not shown or counted
+# result labels kept off the board: config experiments that ran on the old RVN llama.cpp config instead of production's
+# model (night jobs did not send the production model id until #144), so "Production model, ..." would be wrong
+OFF_BOARD = {"exp-20261030-temp-07", "exp-20261031-top-k-40"}
 TRAFFIC_SECTIONS = ("replay", "cron_replay", "ctx")                  # result key "own_traffic": built from the owner's own agent history
 
 
@@ -192,7 +195,7 @@ def collect(results_dir, baseline, confs_dir=None, engine_titles=None, extras_fo
     depth = depth_runs(results_dir)
     runs = []
     for path in sorted(results_dir.glob("*.json")):
-        if path.name.startswith("_") or path.stem.endswith("_nothink") \
+        if path.name.startswith("_") or path.stem.endswith("_nothink") or path.stem in OFF_BOARD \
                 or (path.name.startswith("exp-") and path.stem not in engine_titles):
             continue
         res = json.loads(path.read_text())
@@ -257,7 +260,8 @@ def collect(results_dir, baseline, confs_dir=None, engine_titles=None, extras_fo
     for m in out:
         m["latest"] = best[m["key"]] is m
     out.sort(key=lambda m: m["started"], reverse=True)
-    return {"suite": suite, "graded_cases": full_n, "older_suite_runs": skipped,
+    # the graded runs per setup as the Graded column counts them (Estonian and uncensored left out); full_n includes Estonian
+    return {"suite": suite, "graded_cases": max((m["graded"][1] for m in out), default=0), "older_suite_runs": skipped,
             "production": next((m["label"] for m in out if m["production"]), None), "models": out}
 
 
