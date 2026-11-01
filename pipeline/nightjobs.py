@@ -10,7 +10,7 @@ jobs 4-5 queue config/build experiments that the model test then runs with the G
   1 bug-hunt      review recent diffs and, rotating, whole files of the repos; a second pass verifies each finding
   2 log-triage    cluster the last day's journal / Hermes / llama logs into root causes
   3 wiki-health   check wiki pages against units, ports and paths that exist now
-  4 tuning-sweep  queue the next llama.cpp server-argument experiment (one at a time)
+  4 tuning-sweep  queue the next config experiment of TUNING_PLAN (capy production; one at a time)
   5 build-compare queue a llama.cpp-next vs production build experiment when the checkout changed
   6 regression    bench subset against production, compared with the previous run
   7 tender-deep   riigihanked tenders read in full, bid feasibility for a solo new OÜ
@@ -389,21 +389,29 @@ def wiki_health(ctx):
 # ---- 4 tuning-sweep, 5 build-compare ----------------------------------------------------------------
 
 METRICS = ["passed", "tok_s.prose", "tok_s.parallel", "ttft.long_prompt"]
+# Production is capy-flash (QUASAR NVFP4, switch-capy/serve-capy-prod.sh since 2026-10-29): a config experiment starts that
+# script with the variant on top (bench/EXPERIMENT.md step 2a), so variant and baseline share the engine. Server flags must
+# exist in `ninfer-serve --help` of the production release (v0.7.7); the bench already sends reasoning_effort "low".
+# llama.cpp-only history (measured 2026-10-26..31 on the old production, not comparable with the capy baseline):
+# --ubatch-size 1024, --batch-size 4096, KV q8_0 instead of q4_0, --cache-reuse 256, temp 0.7, top_k 40 + min_p 0.05.
+LLAMACPP_ONLY_FLAGS = ("--ubatch-size", "--batch-size", "--cache-type-k", "--cache-type-v", "--cache-reuse", "--ctx-size",
+                       "--n-gpu-layers", "--flash-attn", "--temp", "--top-k", "--min-p", "--draft-max")
 TUNING_PLAN = [
-    ("ubatch-1024", "Physical batch (ubatch) 1024", "A larger ubatch speeds up prompt reading without changing output.",
-     {"server_args_add": ["--ubatch-size", "1024"]}),
-    ("batch-4096", "Logical batch 4096 with ubatch 1024", "Larger batches may speed up long-prompt ingestion.",
-     {"server_args_add": ["--batch-size", "4096", "--ubatch-size", "1024"]}),
-    ("kv-q8", "KV cache q8_0 instead of q4_0", "A less lossy KV cache may raise quality on long contexts at small speed cost.",
-     {"server_args_remove": ["--cache-type-k", "q4_0", "--cache-type-v", "q4_0"],
-      "server_args_add": ["--cache-type-k", "q8_0", "--cache-type-v", "q8_0"],
-      "notes": "Remove each listed argument together with its value, then append the added ones."}),
-    ("cache-reuse", "Prompt cache reuse 256", "KV shifting reuse cuts re-reading when prompts change slightly.",
-     {"server_args_add": ["--cache-reuse", "256"]}),
-    ("temp-07", "Sampling temperature 0.7", "A lower temperature may raise tool-use and code scores.",
+    ("capy-temp-07", "Capy: sampling temperature 0.7", "A lower temperature may raise tool-use and code scores.",
      {"request_extra": {"temperature": 0.7}}),
-    ("top-k-40", "Sampling top_k 40, min_p 0.05", "Different truncation may help instruction following.",
+    ("capy-top-k-40", "Capy: sampling top_k 40, min_p 0.05", "Different truncation may help instruction following.",
      {"request_extra": {"top_k": 40, "min_p": 0.05}}),
+    ("capy-effort-medium", "Capy: reasoning effort medium", "More thinking than low may raise hard and code scores at a speed cost.",
+     {"request_extra": {"reasoning_effort": "medium"}}),
+    ("capy-think-budget-3000", "Capy: default thinking budget 3000",
+     "A larger thinking cap may stop truncated reasoning on hard cases (the cap applies to low effort too).",
+     {"server_args_remove": ["--default-thinking-budget", "1500"], "server_args_add": ["--default-thinking-budget", "3000"],
+      "notes": "Remove the flag with its value from serve-capy-prod.sh's exec line, then append the added one."}),
+    ("capy-lease-4096", "Capy: KV lease window 4096", "Reserving prompt plus 4096 output tokens (the engine default) instead of the whole max_tokens may lift parallel throughput.",
+     {"server_args_remove": ["--kv-lease-window", "0"], "server_args_add": ["--kv-lease-window", "4096"],
+      "notes": "Remove the flag with its value from serve-capy-prod.sh's exec line, then append the added one."}),
+    ("capy-draft-2", "Capy: MTP draft tokens 2", "Fewer speculative tokens may raise acceptance and change decode speed.",
+     {"server_args_add": ["--draft-tokens", "2"], "notes": "The 27b profile uses 3; flags after the profile override it."}),
 ]
 
 
