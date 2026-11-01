@@ -10,7 +10,7 @@ jobs 4-5 queue config/build experiments that the model test then runs with the G
   1 bug-hunt      review recent diffs and, rotating, whole files of the repos; a second pass verifies each finding
   2 log-triage    cluster the last day's journal / Hermes / llama logs into root causes
   3 wiki-health   check wiki pages against units, ports and paths that exist now
-  4 tuning-sweep  queue the next llama.cpp server-argument experiment (one at a time)
+  4 tuning-sweep  queue the next config experiment of TUNING_PLAN (capy production; one at a time)
   5 build-compare queue a llama.cpp-next vs production build experiment when the checkout changed
   6 regression    bench subset against production, compared with the previous run
   7 tender-deep   riigihanked tenders read in full, bid feasibility for a solo new OÜ

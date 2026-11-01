@@ -65,6 +65,7 @@ $EXPERIMENTS set <id> failed '<one-sentence reason>'   # when the variant could 
    (`RELEASE`), API key file and every other flag. Only flags that `capy-flash/<release>/bin/ninfer-serve --help` lists are valid;
    a flag it rejects (llama.cpp flags such as `--ubatch-size`, `--cache-type-k`, `--cache-reuse`) means the spec is wrong: record `failed`.
    Do not copy the script to anywhere but `$SERVING/logs/`.
+   Give the bench production's API key (the script reads the same file): `ln -sfn $PRODUCTION_MODEL $SERVING/secrets/exp-<id>`.
 
    **2b. Variant config (llama.cpp production).** Copy `$SERVING/$PRODUCTION_CONFIG` to `$SERVING/models.d/exp-<id>.conf.sh`.
    In the copy: set `MODEL_PORT=$TEST_PORT`, drop every argument listed in
