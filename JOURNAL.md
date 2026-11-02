@@ -5,6 +5,13 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## 2026-11-03 — experiment 20261103-capy-top-k-40: Capy: sampling top_k 40, min_p 0.05
+
+- **Hypothesis:** different truncation may help instruction following.
+- **Variant:** capy-flash production script copied unchanged (port 8085; `logs/exp-20261103-capy-top-k-40-serve.sh`, not committed), no server-argument changes; request body `{"reasoning_effort": "low", "top_k": 40, "min_p": 0.05}`, model id `Qwen3.8-27B-QUASAR`.
+- **Result: not measured.** The variant server came up (about 14 GB VRAM per GPU) but rejected the first bench request with HTTP 400: `top_k must be in [0,20]`. A direct request confirmed it. capy-flash v0.7.7 caps `top_k` at 20, so the spec's value of 40 is invalid on this engine. No bench numbers and no result file exist. The experiment is marked `failed`.
+- Production was stopped about 01:34 and restored. My first stop of the variant used the wrong process group, so the restart briefly overlapped it. The variant was then killed and production came up healthy and answered a chat completion.
+
 ## 2026-11-02 — experiment 20261102-capy-temp-07: Capy: sampling temperature 0.7
 
 - **Hypothesis:** a lower temperature may raise tool-use and code scores.
