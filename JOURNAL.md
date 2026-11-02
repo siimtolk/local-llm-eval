@@ -5,6 +5,26 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## 2026-11-02 — experiment 20261102-capy-temp-07: Capy: sampling temperature 0.7
+
+- **Hypothesis:** a lower temperature may raise tool-use and code scores.
+- **Variant:** capy-flash production script copied unchanged (port 8085, own log; `logs/exp-20261102-capy-temp-07-serve.sh`, not committed) with no server-argument changes; the request body carries `{"temperature": 0.7}` on top of the baseline's `reasoning_effort: low`. The bench sent model id `Qwen3.8-27B-QUASAR` (the id the log prints; the baseline file shows `qwen3.8-27b`).
+- **Results vs baseline (`$BASELINE`):**
+
+| metric | variant | baseline | delta | ratio |
+|---|---|---|---|---|
+| passed | 290 | 290 | +0 | |
+| tok_s.prose | 80.87 | 77.7 | +3.168 | x1.04 |
+| tok_s.parallel | 77.88 | 90.02 | -12.14 | x0.865 |
+| ttft.long_prompt (s) | 10.59 | 10.53 | +0.05 | x1 |
+
+- **Core sections (variant vs baseline, passed/total):** tools 42/42 vs 42/42; agent 46/48 vs 46/48; reason 30/30 vs 30/30; extract 15/15 vs 14/15; code 24/24 vs 21/24; hard 48/48 vs 48/48; instruct 20/21 vs 21/21; judge 18/18 vs 18/18; estonian 38/45 vs 40/45; uncensored 9/11 vs 10/11.
+- **Extras (variant):** robust 69/72; longagent 20/21; replay 114/180; cron_replay 28/36; ctx 30/45. The baseline has no `extra`/`own_traffic` keys, so there is no baseline for the extras yet. `estonian_free` crashed in the bench's checker (`cases_v2.py` `et_quality`: `AttributeError: 'list' object has no attribute 'get'`), so it has no result; the other extras were rerun with `--only` (replay/cron_replay once cut off by a 60 min limit, then rerun; ctx separately).
+- **Checks:** none in the spec.
+- **VRAM while serving:** about 14.3 GB and 14.0 GB on the two GPUs.
+- **Observations:** the core pass total equals the baseline's (290); per-section counts moved in both directions by 1-3 cases. Parallel throughput (2 at once) was lower than the baseline's by 12 tok/s; single-stream prose was 3 tok/s higher; long-prompt TTFT unchanged.
+- Production restored: `/health` ok and a chat completion answered.
+
 ## 2026-11-01 — config experiments target capy; tuning plan redone (ticket 153)
 
 - **Why:** production has been capy-flash (QUASAR NVFP4) since 2026-10-29 and `baseline` is the capy run, but `config` experiments still copied the llama.cpp production config, so `20261030-temp-07` and `20261031-top-k-40` compared two engines (see their entries). Siim decided to target capy (morning brief 488070).
