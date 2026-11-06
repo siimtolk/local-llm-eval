@@ -5,6 +5,27 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## 2026-11-06 — experiment 20261105-capy-effort-medium: Capy: reasoning effort medium
+
+**Hypothesis:** more thinking than low may raise hard and code scores at a speed cost.
+
+**Variant:** same capy-flash v0.7.7 server as production (script copy `logs/exp-20261105-serve.sh`-style, port 8085, no changed server flags); only the request differs: `reasoning_effort: "medium"` instead of the baseline's `"low"`. Model id sent: `Qwen3.8-27B-QUASAR`. Baseline `capy-qwen3.8-27b-quasar-nvfp4_capy0.7.4_tp2_efflow` ran capy 0.7.4 with model id `qwen3.8-27b`, so engine release differs as well.
+
+| metric | variant | baseline | delta |
+|---|---|---|---|
+| passed (core) | 291 | 290 | +1 |
+| tok_s.prose | 79.53 | 77.7 | +1.83 (x1.02) |
+| tok_s.parallel | 76.97 | 90.02 | -13.04 (x0.855) |
+| ttft.long_prompt | 10.52 s | 10.53 s | -0.01 |
+
+Per section (variant vs baseline): tools 42/42 vs 42/42; agent 48/48 vs 46/48; reason 30/30 vs 30/30; extract 14/15 vs 14/15; code 22/24 vs 21/24 (fails eval_expr, next_cron); hard 48/48 vs 48/48; instruct 20/21 vs 21/21; judge 18/18 vs 18/18; estonian 39/45 vs 40/45; uncensored 10/11 vs 10/11. Suite wall time 7251 s (incl. reruns) vs 2357 s.
+
+**Extras:** the baseline has no `extra`/own-traffic data, so there is no baseline for them yet. Variant: robust 69/72, longagent 20/21, replay 101/180, cron_replay 27/36, ctx 30/45. `estonian_free` was not measured: it crashed in `et_quality` (`bench/cases_v2.py:689`, `'list' object has no attribute 'get'`, the Estonian checker returned a list), also on rerun. The first run crashed there before replay/cron_replay/ctx, which were rerun with `--only` under the same label.
+
+**Checks:** none in the spec. **VRAM** while serving: about 14.3 GB and 14.0 GB on the two GPUs.
+
+**Observations:** the core pass count is within one case of baseline (agent +2, code +1; instruct, estonian -1 each). Parallel decode throughput is lower (2 at once 142.3 tok/s total in the speed section). Prose and long-prompt TTFT are about equal. Production was restored and answers on :8080.
+
 ## 2026-11-03 — experiment 20261103-capy-top-k-40: Capy: sampling top_k 40, min_p 0.05
 
 - **Hypothesis:** different truncation may help instruction following.
