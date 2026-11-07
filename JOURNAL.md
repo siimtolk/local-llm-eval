@@ -5,6 +5,27 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## 2026-11-07 — experiment 20261107-capy-think-budget-3000: Capy: default thinking budget 3000
+
+**Hypothesis:** a larger thinking cap may stop truncated reasoning on hard cases (the cap applies to low effort too).
+
+**Variant:** capy-flash v0.7.7, script copy `logs/exp-20261107-capy-think-budget-3000-serve.sh` (not committed), port 8085. Changed flag: `--default-thinking-budget 1500` -> `--default-thinking-budget 3000`; all other flags as production. Requests: `reasoning_effort: "low"`, model `Qwen3.8-27B-QUASAR`.
+
+| metric | variant | baseline | delta |
+|---|---|---|---|
+| passed (core) | 292 | 290 | +2 |
+| tok_s.prose | 82.36 | 77.7 | +4.66 (x1.06) |
+| tok_s.parallel | 78.37 | 90.02 | -11.65 (x0.871) |
+| ttft.long_prompt | 10.59 s | 10.53 s | +0.06 |
+
+Per section (variant vs baseline): tools 42/42 vs 42/42; agent 48/48 vs 46/48; reason 30/30 vs 30/30; extract 15/15 vs 14/15; code 24/24 vs 21/24; hard 48/48 vs 48/48; instruct 21/21 vs 21/21; judge 18/18 vs 18/18; estonian 36/45 vs 40/45 (fails et_genitive, et_illative, et_number_words, et_timer, et_tutar); uncensored 10/11 vs 10/11 (paywall failed, 1 out of tokens).
+
+**Extras:** the baseline has no `extra`/own-traffic data, so there is no baseline for them yet. Variant: robust 68/72, longagent 20/21, replay 110/180, cron_replay 27/36, ctx 30/45. `estonian_free` was not measured: it crashed in `et_quality` (`bench/cases_v2.py`, `'list' object has no attribute 'get'`); the other extras were rerun with `--only replay,cron_replay,ctx`.
+
+**Checks:** none in the spec. **VRAM** while serving: about 14.3 GB and 14.0 GB on the two GPUs.
+
+**Observations:** core pass count is +2 (agent +2, extract +1, code +3; estonian -4). Prose decode is a bit higher; parallel decode is lower (2 at once 149.3 tok/s total). Long-prompt TTFT is equal. Production was restored and answered a chat completion afterwards.
+
 ## 2026-11-06 — experiment 20261105-capy-effort-medium: Capy: reasoning effort medium
 
 **Hypothesis:** more thinking than low may raise hard and code scores at a speed cost.
