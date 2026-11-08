@@ -24,7 +24,7 @@ Per section (variant): tools 42/42; agent 48/48; extract 14/15 (release_name); c
 
 **Checks:** none in the spec. **VRAM** while serving: 14279 + 13995 MiB of 16311 MiB per GPU.
 
-**Observations:** the first full run ended at estonian_free (the crash above); replay, cron_replay and ctx were rerun with `--only` under the same label (7324 s). Parallel throughput (2 at once) measured 143.0 tok/s total (75.6 + 76.8) against the baseline's 90.02 per stream; prose was within 2% of baseline and long-prompt TTFT within 1%. Decode after 30k context: 75.2 tok/s, after 90k: 69.1 tok/s.
+**Observations:** the first full run ended at estonian_free (the crash above); replay, cron_replay and ctx were rerun with `--only` under the same label (7324 s). The recorded tok_s.parallel is 76.21 against 90.02 (the bench's own load line for the run: 2 at once, 143.0 tok/s total, 75.6 + 76.8 per stream); prose was within 2% of baseline and long-prompt TTFT within 1%. Decode after 30k context: 75.2 tok/s, after 90k: 69.1 tok/s.
 
 ## 2026-11-07 — experiment 20261107-capy-think-budget-3000: Capy: default thinking budget 3000
 
