@@ -5,6 +5,27 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## 2026-11-09 — experiment 20261109-capy-draft-2: Capy: MTP draft tokens 2
+
+**Hypothesis:** fewer speculative tokens may raise acceptance and change decode speed.
+
+**Variant:** capy-flash v0.7.7, script copy `logs/exp-20261109-capy-draft-2-serve.sh` (not committed), port 8085. Changed flag: appended `--draft-tokens 2` after production's flags (the 27b profile default is 3); all other flags as production. Requests: `reasoning_effort: "low"`, model `Qwen3.8-27B-QUASAR`.
+
+| metric | variant | baseline | delta |
+|---|---|---|---|
+| passed (core) | 290 | 290 | +0 |
+| tok_s.prose | 78.32 | 77.7 | +0.62 (x1.01) |
+| tok_s.parallel | 71.34 | 90.02 | -18.67 (x0.793) |
+| ttft.long_prompt | 10.62 s | 10.53 s | +0.08 |
+
+Per section (variant): tools 42/42; agent 44/48 (fix_bug, remembered_pref, torrent_pick); reason 30/30; extract 14/15 (release_name); code 23/24 (eval_expr); hard 47/48 (very_long_context); instruct 21/21; judge 18/18; estonian 41/45 (et_genitive, et_illative, et_number_words); uncensored 10/11 (torrents; 1 out of tokens).
+
+**Extras** (the baseline result has no `extra` key, so there is no baseline for them yet): robust 68/72, longagent 19/21, replay 105/180, cron_replay 27/36, ctx 29/45. `estonian_free` did not run: the bench crashed in `et_quality` (`cases_v2.py` line 689, `'list' object has no attribute 'get'`), a checker error, not a server one.
+
+**Checks:** none in the spec. **VRAM** while serving: 14275 + 13993 MiB of 16311 MiB per GPU.
+
+**Observations:** the first bench invocation ended after the speed section only (168 s) without an error in its log; the quality sections were rerun with `--only` under the same label, then replay/cron_replay/ctx after the estonian_free crash (about 8350 s in the last run). Prose speed is near the baseline's; the bench's own load line shows 2 at once 136.7 tok/s total (70.8 + 71.9). Draft acceptance in the three prose reps was 383/631, 366/666, 384/628 (59% overall). Speed at depth: decode 77.8 tok/s after 30k (MTP 64%), 69.4 after 90k (MTP 61%). Prompt processing 2841 tok/s, alternating chats first turn 4.0 s, follow-ups 2.2 s.
+
 ## 2026-11-08 — experiment 20261108-capy-lease-4096: Capy: KV lease window 4096
 
 **Hypothesis:** reserving prompt plus 4096 output tokens (the engine default) instead of the whole max_tokens may lift parallel throughput.
