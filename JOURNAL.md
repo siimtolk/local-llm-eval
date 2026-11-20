@@ -5,6 +5,49 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## 2026-11-20 — Qwen3.8-27B Hessian-Refined (Q4_K_XL, christophedevriese)
+
+**Question:** how does the dense Qwen3.8-27B "Hessian-Refined" Q4_K_XL (MACaQ-R, 17.7 GB, no MTP head) do on the 2026-10-18 suite against production?
+
+**Setup:** `models.d/qwen3.8-27b-hessian-refined.conf.sh` (from the RVN config), llama.cpp-next, port 8085, CUDA0+CUDA1, `--ctx-size 262144 --parallel 2` (2 x 128k), q4_0 KV, `-fa on`, no spec decoding, no mmproj (text only), temp 1.0 / top-p 0.95 / top-k 20, `--reasoning-effort low`. Label `qwen3.8-27b-hessian-refined_q4kxl_nospec_2gpu_128k`. The first full run was cut by its 110-min limit after `judge`; estonian and uncensored were rerun with `--only` and merged. Thinking-off pass: `_nothink` (the template honours the switch: ~2x faster, answers changed).
+
+Compared against the results file `$BASELINE` (capy / vLLM, MTP; the b11707 llama.cpp production figures from NIGHTLY.md are in the right-hand column where known).
+
+| metric | candidate | baseline file | prod b11707 |
+|---|---|---|---|
+| graded rows passed (core + estonian + uncensored) | 285/290 | 290/290 | 283/291 |
+| estonian | 37/45 | 40/45 | 41/45 |
+| uncensored answered | 9/11 (2 out of tokens: darkweb, paywall) | 10/11 | 11/11 |
+| thinking off (tools/extract/instruct/judge/estonian) | 120/141 | 120/141 (ditto file) | 113/141 |
+| prose / tool-JSON tok/s | 22.9 / 23.0 | 81.7 / 117.7 | 46.0 / 65.5 |
+| 30k-prompt tok/s | 1434 | 2849 | 1213 |
+| two at once (total, each) | 40.1 (21.1 + 21.1) | 88.1 | 69 |
+| alternating chats follow-up TTFT | 1.1 s (first 8.9 s) | 4.2 s | 1.3 s |
+| decode after 30k / 90k | 20.0 / 15.8 tok/s | see depth file | see depth file |
+| suite wall-clock (core) | ~7300 s | 2357 s | |
+| VRAM | ~14 GB per GPU after load at 2 x 128k (nvidia-smi after serving, approximate) | | |
+
+| section | passed | failed |
+|---|---|---|
+| tools | 42/42 | |
+| agent | 46/48 | |
+| reason | 29/30 | train |
+| extract | 13/15 | release_name |
+| code | 22/24 | eval_expr, next_cron (1 out of tokens) |
+| hard | 48/48 | |
+| instruct | 21/21 | |
+| judge | 18/18 | |
+| estonian | 37/45 | et_genitive, et_illative, et_jalg, et_number_words, et_timer, et_tutar |
+| uncensored | 9/11 | darkweb, paywall (out of tokens) |
+| extra: robust | 64/72 | err_find_path, err_giveup, err_retry, many_reschedule |
+| extra: longagent | 20/21 | la_log_stats |
+| extra: estonian_free | not run | bench crashed in `cases_v2.et_quality` (`'list' object has no attribute 'get'`, Estonian checker output shape) |
+| extra: replay, cron_replay, ctx | not run | the run of these three printed nothing in 45 min and hit the night's time limit |
+
+Thinking off: tools 38/42, extract 11/15, instruct 20/21, judge 18/18, estonian 33/45 (baseline file: 39/42, 12/15, 19/21, 18/18, 32/45).
+
+**Observations:** decode is ~23 tok/s with no speculative decoding, about half of production's 46 tok/s; the full core suite took ~2.7 h. Long-context decode held up (20.0 tok/s at 30k, 15.8 at 90k). The slot cache is kept between chats (follow-up 1.1 s). Licence not checked. No verdict.
+
 ## 2026-11-09 — experiment 20261109-capy-draft-2: Capy: MTP draft tokens 2
 
 **Hypothesis:** fewer speculative tokens may raise acceptance and change decode speed.

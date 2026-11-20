@@ -167,6 +167,7 @@ Write-ups are in [JOURNAL.md](JOURNAL.md), raw numbers in `results/`. The table 
 <!-- results-table:start -->
 | Model | Run | Date | Suite | Graded | Estonian | Uncensored | Thinking off | Prose tok/s |
 |---|---|---|---|---:|---:|---:|---:|---:|
+| qwen3.8-27b-hessian-refined | `qwen3.8-27b-hessian-refined_q4kxl_nospec_2gpu_128k` | 2026-11-20 | 2026-10-18 | 276/291 | 37/45 | 9/11 | 120/141 | 22.9 |
 | vllm-qwen3.8-27b-heretic-ara-nvfp4-mtp | `vllm-qwen3.8-27b-heretic-ara-nvfp4-mtp_vllm0.32_tp2` | 2026-10-26 | 2026-10-18 | 277/291 | 38/45 | 11/11 | 110/141 | 58.4 |
 | qwen3.8-27b-gsq-rco | `qwen3.8-27b-gsq-rco_iq3s_mtp_2gpu_128k` | 2026-10-26 | 2026-10-18 | 276/291 | 38/45 | 11/11 | 110/141 | 44.0 |
 | rvn-qwen3.8-flash-next-abliterated | `rvn-qwen3.8-flash-next-abliterated_iq3xs_nospec_2gpu_128k` | 2026-10-25 | 2026-10-18 | 268/291 | 41/45 | 11/11 | 114/141 | 15.2 |
