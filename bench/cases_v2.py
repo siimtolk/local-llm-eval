@@ -685,8 +685,10 @@ def et_quality(mcp, text, prompt=""):
     Acronyms (HTTP, DELETE) and words the prompt itself uses are not counted as misspelt: the checker does not know loanwords."""
     words = re.findall(r"[^\W\d_]{2,}", text)
     given = {w.lower() for w in re.findall(r"[^\W\d_]{2,}", prompt)}
-    spelling = [i for i in mcp.call("spell_check", text=text, suggestions=False)
-                if i.get("spelling") is False and re.fullmatch(r"[^\W\d_]+", i.get("text") or "")
+    raw = mcp.call("spell_check", text=text, suggestions=False) or []
+    flat = [x for i in raw for x in (i if isinstance(i, list) else [i])]   # the checker answers one list per text: [[{...}]]
+    spelling = [i for i in flat
+                if isinstance(i, dict) and i.get("spelling") is False and re.fullmatch(r"[^\W\d_]+", i.get("text") or "")
                 and not i["text"].isupper() and i["text"].lower() not in given]
     punct = (mcp.call("check_punctuation", text=text) or [{}])[0].get("issues") or []
     comp = (mcp.call("check_compounds", text=text) or [{}])[0].get("issues") or []

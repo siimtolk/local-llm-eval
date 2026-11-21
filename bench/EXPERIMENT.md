@@ -95,6 +95,10 @@ $EXPERIMENTS set <id> failed '<one-sentence reason>'   # when the variant could 
    (leave out `--request-extra` when it is empty). Run it as a background command with a time
    limit that covers it (up to 110 min); if it is cut off, rerun only the missing sections with
    `--only` and the same label.
+   **Always run the full extended set** (Siim, 2026-11-21): the default command above, no `--cases` and no `--only` (core suite + speed + every extra
+   section). Do not run "extras only" or a subset unless the spec says so. If the run is cut off, rerun the missing sections with `--only` and the
+   same label until `extra` holds robust, longagent, estonian_free and `own_traffic` holds replay, cron_replay, ctx; say in the journal which are missing.
+   `estonian_free` needs the Estonian MCP (`curl` 8081/8091 must answer); a crash there is a bug, not a skip. Fixed 2026-11-21 (`et_quality`: the spell checker answers `[[...]]`).
    The default run includes the extra sections (`bench/cases_v2.py`, `bench/cases_private.py`: robust, longagent,
    estonian_free, replay, cron_replay, ctx). They land under the result file's `extra` key and do
    not touch the core totals. Sections the server cannot run (no Estonian checker,
