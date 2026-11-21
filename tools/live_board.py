@@ -392,6 +392,14 @@ def main():
         subprocess.run(git + ["commit", "-q", "-m", f"Live results: {latest['name']}, {len(pts)} setups on suite {data['suite']}"], check=True)
         subprocess.run(git + ["push", "-q"], check=True)
         print("pushed")
+        # The blog is split: the push above only reaches the private repo. The sanity check passed and the
+        # push succeeded, so snapshot it to the public site too (a failure here is logged, never fatal).
+        script = repo / "tools" / "publish-public.sh"
+        if script.exists():
+            r = subprocess.run(["bash", str(script)], capture_output=True, text=True)
+            print((r.stdout + r.stderr).strip() or "publish-public: no output")
+            if r.returncode:
+                print(f"WARNING: publish-public.sh failed ({r.returncode}); run it by hand")
 
 
 if __name__ == "__main__":
