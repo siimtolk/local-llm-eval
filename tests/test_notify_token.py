@@ -38,6 +38,7 @@ class TokenTest(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.srv.shutdown()
+        cls.srv.server_close()
 
     def cfg(self, tf):
         return mock.patch.object(notify.config, "get", lambda s, k, d=None: tf if k == "token_file" else d)
