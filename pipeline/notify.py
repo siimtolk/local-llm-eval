@@ -6,14 +6,23 @@ gets the text on stdin, or stdout. The chat ids and the bridge address live only
   command:  run with the text on stdin
 """
 import json
+import os
 import subprocess
 import urllib.request
+from pathlib import Path
 
 import config
 
 
 def post_json(url, payload, timeout=60):
-    req = urllib.request.Request(url, json.dumps(payload).encode(), {"Content-Type": "application/json"})
+    headers = {"Content-Type": "application/json"}
+    tf = config.get("notify", "token_file")
+    if tf:
+        try:
+            headers["Authorization"] = "Bearer " + Path(os.path.expanduser(tf)).read_text().strip()
+        except OSError:
+            raise OSError("notify token_file unreadable") from None
+    req = urllib.request.Request(url, json.dumps(payload).encode(), headers)
     return json.loads(urllib.request.urlopen(req, timeout=timeout).read() or b"{}")
 
 
