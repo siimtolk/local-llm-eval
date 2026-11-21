@@ -5,6 +5,53 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## 2026-11-21 — Qwen3.8-27B (Q4_K_XL, nace-ai)
+
+**Question:** how does the dense Qwen3.8-27B Q4_K_XL (nace-ai/Qwen3.8-27B-GGUF, 17.7 GB, plain decoding) do on the 2026-10-18 suite against production?
+
+**Setup:** `models.d/qwen3.8-27b.conf.sh` (from the Hessian-Refined config), llama.cpp-next, port 8085, CUDA0+CUDA1, `--ctx-size 262144 --parallel 2` (2 x 128k), q4_0 KV, `-fa on`, `--temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0`, `--reasoning-effort low`, no MTP/draft and no mmproj (text only). Label `qwen3.8-27b_q4kxl_nospec_2gpu_128k`. Server's chat template preserves reasoning by default.
+
+Compared against the results file `$BASELINE` (capy / vLLM, MTP); the b11707 production figures from NIGHTLY.md are in the right-hand column where known.
+
+| metric | candidate | baseline file | prod b11707 |
+|---|---|---|---|
+| core graded runs passed (incl. estonian) | 280/291 | 280/291 | 283/291 |
+| estonian | 36/45 | 40/45 | 41/45 |
+| uncensored answered | 9/11 (2 out of tokens: invest, paywall) | 10/11 | 11/11 |
+| thinking off (tools/extract/instruct/judge/estonian) | 118/141 | 120/141 | 113/141 |
+| prose / tool-JSON tok/s | 22.9 / 23.0 | 81.7 / 117.7 | 46.0 / 65.5 |
+| 30k-prompt tok/s | 1432 | 2849 | 1213 |
+| two at once (total, each) | 40.1 (21.1 + 21.1) | 88.1 | 69 |
+| alternating chats follow-up TTFT | 1.1 s (first 8.9 s) | 4.2 s | 1.3 s |
+| decode after 30k / 90k | 20.0 / 15.8 tok/s | 78.3 / 68.8 | see depth file |
+| suite wall-clock (core + estonian + uncensored) | ~9700 s incl. extras | 2357 s | |
+| tokens, core + uncensored | 143.7k | 164.8k | |
+| VRAM | ~12-13 GB per GPU at 2 x 128k (nvidia-smi just before stop, approximate) | | |
+
+| section | passed | failed |
+|---|---|---|
+| tools | 42/42 | |
+| agent | 47/48 | remembered_pref |
+| reason | 30/30 | |
+| extract | 15/15 | |
+| code | 23/24 | next_cron (1 out of tokens) |
+| hard | 48/48 | |
+| instruct | 21/21 | |
+| judge | 18/18 | |
+| estonian | 36/45 | et_genitive, et_illative, et_number_words, et_timer |
+| uncensored | 9/11 | invest, paywall (both out of tokens) |
+| extra: robust | 68/72 | err_find_path, err_giveup, many_reschedule |
+| extra: longagent | 21/21 | |
+
+Thinking off (`_nothink`): tools 38/42 (ask_first, typos), extract 12/15 (release_name), instruct 20/21 (acrostic), judge 18/18, estonian 30/45. Output tokens in this pass were 8.8k (baseline file 8.9k); the template honours the switch.
+
+**Observations:**
+- Not run: extra sections `estonian_free` (the bench crashed in `et_quality`: the Estonian MCP `spell_check` returned a nested list, `AttributeError: 'list' object has no attribute 'get'` in `bench/cases_v2.py:689`; a harness/MCP format problem, not the model), and `replay`, `cron_replay`, `ctx` (started after the crash, cut off at 04:45 to leave time for the thinking-off pass and restore; no results saved).
+- Decode is ~23 tok/s flat without a draft; ~16 tok/s at 90k context.
+- Slot cache works between chats (follow-up 1.1 s).
+- The baseline file's numbers differ from the NIGHTLY.md b11707 figures; both shown.
+- Licence not checked.
+
 ## 2026-11-20 — Qwen3.8-27B Hessian-Refined (Q4_K_XL, christophedevriese)
 
 **Question:** how does the dense Qwen3.8-27B "Hessian-Refined" Q4_K_XL (MACaQ-R, 17.7 GB, no MTP head) do on the 2026-10-18 suite against production?
