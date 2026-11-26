@@ -1,11 +1,61 @@
 """Shared pieces of bench/bench.py: the OpenAI-compatible client and the tool-calling loop.
 A cases file (bench/cases.py or one passed with --cases) imports fn and run_tools from here."""
+import hashlib
 import json
 import time
 import urllib.error
 import urllib.request
+from collections import Counter
+from pathlib import Path
 
 MAX_TOKENS = 6000
+CHECKPOINT_DAYS = 14  # an older checkpoint is from another run: ignored and removed
+
+
+class Checkpoint:
+    """The finished requests of one section, so a section that was cut off resumes where it stopped.
+
+    Every answered chat request is appended as one JSON line, keyed by the exact request body and how many
+    times that body was sent before in the section (reps send the same body). A rerun of the section with
+    the same label gets the stored answer for each request it already finished, with its original wall
+    time, and asks the server only for the rest; a request whose body differs (a random prompt, a different
+    earlier answer) is a miss and goes to the server. Failed requests are not stored. bench.py deletes the
+    file once the section is saved in the result file."""
+
+    def __init__(self, path):
+        self.path, self.seen, self.cache, self.hits = Path(path), Counter(), {}, 0
+        if self.path.exists() and time.time() - self.path.stat().st_mtime > CHECKPOINT_DAYS * 86400:
+            self.path.unlink()
+        if self.path.exists():
+            for line in self.path.read_text().splitlines():
+                try:
+                    rec = json.loads(line)
+                    self.cache.setdefault(rec["key"], []).append(rec["out"])
+                except (ValueError, KeyError, TypeError):  # the last line of a killed run may be cut off
+                    continue
+        self.stored = sum(map(len, self.cache.values()))
+
+    @staticmethod
+    def key(body):
+        return hashlib.sha256(json.dumps(body, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+
+    def get(self, body):
+        """(stored answer or None, key) for this request; counts the request either way."""
+        k = self.key(body)
+        n, self.seen[k] = self.seen[k], self.seen[k] + 1
+        hit = self.cache.get(k, [])
+        if n < len(hit):
+            self.hits += 1
+            return hit[n], k
+        return None, k
+
+    def put(self, k, out):
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with open(self.path, "a") as f:
+            f.write(json.dumps({"key": k, "out": out}, ensure_ascii=False) + "\n")
+
+    def discard(self):
+        self.path.unlink(missing_ok=True)
 
 
 class Client:
@@ -13,6 +63,7 @@ class Client:
         self.url, self.key = base_url.rstrip("/") + "/v1/chat/completions", key
         self.temperature = temperature  # None: the server's default sampling
         self.extra = extra or {}  # sent with every request, e.g. reasoning_effort / chat_template_kwargs
+        self.checkpoint = None  # a Checkpoint while bench.py runs a section: finished requests are kept and reused
 
     def body(self, messages, max_tokens, **extra):
         body = {"messages": messages, "max_tokens": max_tokens, **self.extra, **extra}
@@ -24,6 +75,11 @@ class Client:
         body = self.body(messages, max_tokens)
         if tools:
             body["tools"] = tools
+        cp = self.checkpoint
+        if cp:
+            stored, k = cp.get(body)
+            if stored is not None:
+                return stored
         req = urllib.request.Request(self.url, json.dumps(body).encode(), {
             "Content-Type": "application/json", "Authorization": f"Bearer {self.key}"})
         t0 = time.time()
@@ -34,6 +90,8 @@ class Client:
                    "error": f"HTTP {e.code}: {e.read().decode(errors='replace')[:300]}"}
         out["_wall"] = time.time() - t0
         out["_truncated"] = out["choices"][0].get("finish_reason") == "length"
+        if cp and "error" not in out:
+            cp.put(k, out)
         return out
 
     def stream(self, messages, max_tokens):

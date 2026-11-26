@@ -18,7 +18,7 @@ machine-specific value lives in `local.toml`, which is not tracked.
 | 1. Discover | `pipeline/discover.py` | morning | no | Hugging Face trending and searches (`uncensored`, `abliterated`, ...), new repos of trusted publishers, r/LocalLLaMA reactions; keeps what fits the machine and is new |
 | 2. Judge | `pipeline/judge.py` | morning | yes | one turn of a model reads the candidates (`prompts/judge.md`) and picks at most three worth testing; the brief goes to your chat |
 | 3. Fetch | `pipeline/fetch.py` | daytime | no | risk check (`pipeline/risk.py`: HF file scans, the GGUF header, the uploader); after you tick candidates in a poll, picks the quant that fits and downloads it; also queues a 4-bit vLLM build of the same model |
-| 4. Test | `pipeline/runner.py model-test` | night window | yes | the agent follows `bench/NIGHTLY.md` (or `NIGHTLY_VLLM.md`): stop production, serve the candidate, run `bench/bench.py`, restore production, write up, commit, record the results (no verdict: you decide) |
+| 4. Test | `pipeline/runner.py model-test` | night window | yes | the agent follows `bench/NIGHTLY.md` (or `NIGHTLY_VLLM.md`): stop production, serve the candidate, run `bench/bench.py` (no length cap, detached by `tools/bench_bg.sh`, stopped only at the night's bench stop time), restore production, write up, commit, record the results (no verdict: you decide). Sections a run did not reach are queued (`pipeline/resume.py`) and continued the next night with the same label (`bench/RESUME.md`) |
 | 5. Report | `pipeline/report.py` | morning | no | each candidate's results summary, plus the new proposals with their risk and a poll |
 
 The candidates store (`paths.store`) carries each model through
@@ -138,7 +138,7 @@ next to it and are stored under each result file's `extra` key (synthetic: robus
 change. Each has its own version in `SECTION_VERSIONS`. They run by default after the core suite; `--cases bench/cases.py` runs the core alone.
 
 ```
-python3 bench/bench.py --label my-model                                                  # core + extra sections (the default)
+python3 bench/bench.py --label my-model                                                  # core + extra sections (the default); rerun the same command to continue a killed run
 python3 bench/bench.py --label my-model --cases bench/cases.py                           # the core suite alone
 python3 bench/bench.py --label my-model --only robust,longagent,estonian_free     # one section group
 ```
@@ -205,7 +205,7 @@ Write-ups are in [JOURNAL.md](JOURNAL.md), raw numbers in `results/`. The table 
 ## Layout
 
 ```
-bench/       bench.py, cases.py (core), cases_v2.py (extra), cases_private.py (your traffic), harness.py; NIGHTLY.md, NIGHTLY_VLLM.md and EXPERIMENT.md, the agent's procedures
+bench/       bench.py, cases.py (core), cases_v2.py (extra), cases_private.py (your traffic), harness.py; NIGHTLY.md, NIGHTLY_VLLM.md, NIGHTLY_CAPY.md, EXPERIMENT.md and RESUME.md, the agent's procedures
 pipeline/    discover, judge, risk, candidates (store), experiments, fetch, runner, report, notify, config
 prompts/     the judge prompt
 results/     one JSON per benchmark run

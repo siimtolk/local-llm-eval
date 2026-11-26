@@ -30,7 +30,7 @@ $EXPERIMENTS set <id> failed '<one-sentence reason>'   # when the variant could 
 - **Time:** the test window is `$WINDOW` local time; production must be serving again by the
   **end of the window**. The restore margin before the end belongs to the runner: then it kills
   this run whatever it is doing, stops every test server, restores production and marks an
-  unrecorded experiment `failed`. The suite takes 50–80 min. If the variant is not serving
+  unrecorded experiment `failed`. The benchmark has no length cap (core 45–70 min, extra sections 1–3.5 h more); `$BENCH_BG wait` stops it at `$BENCH_STOP_AT`, leaving time for the restore and write-up. If the variant is not serving
   within 30 min of your start, give up: restore production and record `failed` with the reason.
   Start right away, never wait for the window to open.
 - **One experiment per run.** Only the id you were given; the runner starts a separate run for
@@ -91,13 +91,14 @@ $EXPERIMENTS set <id> failed '<one-sentence reason>'   # when the variant could 
 5. **Benchmark** (from `$EVAL`), the same suite as the baseline, label `exp-<id>`. Capy production: the baseline sent
    `reasoning_effort` and a model id (see `request_extra` in `$RESULTS/$BASELINE.json`); send the same effort with
    `--reasoning-effort <that value>` and the id the variant's log prints with `--model <id>`, and let `variant.request_extra` override it. The command:
-   `bench/bench.py --label exp-<id> --base-url http://127.0.0.1:$TEST_PORT --api-key-file $SERVING/secrets/exp-<id>/api_key.txt --request-extra '<variant.request_extra as JSON>' > $SERVING/logs/bench-exp-<id>.log 2>&1`
-   (leave out `--request-extra` when it is empty). Run it as a background command with a time
-   limit that covers it (up to 110 min); if it is cut off, rerun only the missing sections with
-   `--only` and the same label.
+   `$BENCH_BG start $SERVING/logs/bench-exp-<id>.log --label exp-<id> --base-url http://127.0.0.1:$TEST_PORT --api-key-file $SERVING/secrets/exp-<id>/api_key.txt --request-extra '<variant.request_extra as JSON>'`
+   (leave out `--request-extra` when it is empty), then `$BENCH_BG wait --stop-at "$BENCH_STOP_AT"`, again while it exits 3.
+   **No time limit on the benchmark** (as `bench/NIGHTLY.md` step 6): never run bench.py as your own background command or
+   with a `timeout`. If `wait` stopped it at `$BENCH_STOP_AT` (exit 4), go on with step 6: the runner queues the missing
+   sections for the next night with the same label (`bench/RESUME.md`).
    **Always run the full extended set** (Siim, 2026-11-21): the default command above, no `--cases` and no `--only` (core suite + speed + every extra
-   section). Do not run "extras only" or a subset unless the spec says so. If the run is cut off, rerun the missing sections with `--only` and the
-   same label until `extra` holds robust, longagent, estonian_free and `own_traffic` holds replay, cron_replay, ctx; say in the journal which are missing.
+   section). Do not run "extras only" or a subset unless the spec says so. If the run was stopped, say in the journal which sections are
+   missing (`$RESUME missing exp-<id>`) and that they run the next night.
    `estonian_free` needs the Estonian MCP (`curl` 8081/8091 must answer); a crash there is a bug, not a skip. Fixed 2026-11-21 (`et_quality`: the spell checker answers `[[...]]`).
    The default run includes the extra sections (`bench/cases_v2.py`, `bench/cases_private.py`: robust, longagent,
    estonian_free, replay, cron_replay, ctx). They land under the result file's `extra` key and do

@@ -9,8 +9,8 @@ The runner's prompt ends with this machine's settings (from `local.toml`); this 
 them by name: `$EVAL` (this repo), `$SERVING` (the serving repo), `$MODELS`, `$RESULTS`, `$SERVE`
 (the backend interface), `$TEST_PORT`, `$PRODUCTION_URL`, `$PRODUCTION_MODEL`,
 `$PRODUCTION_CONFIG`, `$CANDIDATE_LLAMA_CPP`, `$STOP_PRODUCTION`, `$START_PRODUCTION`,
-`$ENSURE_PRODUCTION`, `$BASELINE`, `$CANDIDATES`, `$MACHINE`, `$WINDOW`, `$REPORT_TIME`,
-`$SUMMARY_LANGUAGE`. Record the result with
+`$ENSURE_PRODUCTION`, `$BASELINE`, `$CANDIDATES`, `$BENCH_BG`, `$BENCH_STOP_AT`, `$MACHINE`, `$WINDOW`,
+`$REPORT_TIME`, `$SUMMARY_LANGUAGE`. Record the result with
 
 ```bash
 $CANDIDATES set <repo> <tested|skipped|failed> '<summary>'
@@ -28,7 +28,9 @@ plain text, at most ~600 characters, in `$SUMMARY_LANGUAGE`, no headings or tabl
   **end of the window**, the owner's everyday assistant uses it from then on. The restore margin
   before the end (10 min by default) belongs to the runner: at that point it kills this run
   whatever it is doing, stops the test server, restores production and marks an unrecorded
-  candidate `failed`. So plan for it: both benchmark passes together take 50–80 min. If the
+  candidate `failed`. So plan for it: the benchmark has no length cap (the core suite takes 45–70 min,
+  the extra sections 1–3.5 h more), and `$BENCH_BG wait` stops it at `$BENCH_STOP_AT`, which leaves
+  time to restore production, write up, commit and record before the kill. If the
   candidate is not serving within 30 min of your start, give up: restore production and record
   `failed` with the reason. `$ENSURE_PRODUCTION` also runs at the end of the window as a second
   safety net. The runner starts you only inside the window (or when the owner opens it early by
@@ -74,20 +76,27 @@ not fit in VRAM is `skipped`.
    `$SERVING/logs/<model>.log` when it does not come up). If the architecture is unsupported, try
    the build once: `cd $SERVING/$CANDIDATE_LLAMA_CPP && git pull && cmake --build build -j` (log to
    `$SERVING/logs/llama-next-build.log`). If it still fails, record `failed`.
-6. **Benchmark** (from `$EVAL`: `cd $EVAL`):
-   `bench/bench.py --label <model>_<quant>_<spec>_2gpu_128k --base-url http://127.0.0.1:$TEST_PORT --api-key-file $SERVING/secrets/<model>/api_key.txt > $SERVING/logs/bench-<model>.log 2>&1`,
-   for example `<quant>` = `q4km`, `<spec>` = `mtp` or `nospec`. This is the full suite as the
-   everyday assistant uses the model (the server's default reasoning): 97 graded cases x 3
-   (core suite 2026-10-18, incl. a ~105k-token prompt), then the extra sections (`cases_v2.py`: robust, longagent,
-   estonian_free; `cases_private.py`: replay, cron_replay, ctx; they land under `extra` and never change the
-   core totals; a section the server cannot run prints `skipped`, say which), plus speed, two requests at once, two
-   alternating chats and decode speed after ~30k and ~90k tokens of context, 45–70 min for the core, more for the extra sections (they run last, so a cut-off loses only them).
-   Then the everyday sections with thinking off, under the same label plus `_nothink`:
-   `bench/bench.py --label <label>_nothink --thinking off --only tools,extract,instruct,judge,estonian --base-url http://127.0.0.1:$TEST_PORT --api-key-file $SERVING/secrets/<model>/api_key.txt > $SERVING/logs/bench-<model>-nothink.log 2>&1`
-   (about 5–10 min). A model whose template ignores the switch just thinks anyway; say so.
-   Run each as a background command with a time limit that covers it (the full suite can take
-   up to 110 min). bench.py saves after every section; if a run is cut off, rerun only the
-   missing sections with `--only` and the same label, and the results are merged.
+6. **Benchmark** (from `$EVAL`: `cd $EVAL`), two passes, the label `<model>_<quant>_<spec>_2gpu_128k`
+   (for example `<quant>` = `q4km`, `<spec>` = `mtp` or `nospec`). Start each with `$BENCH_BG start <log> <bench.py arguments>`
+   and wait for it with `$BENCH_BG wait --stop-at "$BENCH_STOP_AT"`, again as long as it exits 3 (still running;
+   each wait returns within 9 min). **No time limit on the benchmark:** never run bench.py as your own
+   background command or with a `timeout` (the harness's limit on background commands cut off the
+   2026-11-26 Inkling run), and never cap or shorten it. It runs until it is done; only at `$BENCH_STOP_AT`
+   does `wait` stop it (exit 4). Then do not rerun anything yourself: go on with step 7. The runner checks the
+   result files after your run and queues what is missing for the next night (`bench/RESUME.md`, same label;
+   bench.py keeps every finished section and every answered request, so nothing is measured twice).
+   a. Thinking off first, the everyday sections (5–30 min):
+      `$BENCH_BG start $SERVING/logs/bench-<model>-nothink.log --label <label>_nothink --thinking off --only tools,extract,instruct,judge,estonian --base-url http://127.0.0.1:$TEST_PORT --api-key-file $SERVING/secrets/<model>/api_key.txt`.
+      A model whose template ignores the switch just thinks anyway; say so.
+   b. The full suite as the everyday assistant uses the model (the server's default reasoning):
+      `$BENCH_BG start $SERVING/logs/bench-<model>.log --label <label> --base-url http://127.0.0.1:$TEST_PORT --api-key-file $SERVING/secrets/<model>/api_key.txt`:
+      speed, two requests at once, two alternating chats and decode speed after ~30k and ~90k tokens of context,
+      97 graded cases x 3 (core suite 2026-10-18, incl. a ~105k-token prompt), then the extra sections
+      (`cases_v2.py`: robust, longagent, estonian_free; `cases_private.py`: replay, cron_replay, ctx; they land under
+      `extra` / `own_traffic` and never change the core totals; a section the server cannot run prints `skipped`, say which).
+      45–70 min for the core, 1–3.5 h more for the extra sections.
+   If the bench was stopped at `$BENCH_STOP_AT`, say in the journal and in the summary which sections are
+   missing and that they run the next night (`$RESUME missing <label>` lists them).
 7. **Restore production:** `$SERVE stop <model>`, then
    `$START_PRODUCTION || $ENSURE_PRODUCTION`. Check that `curl -s $PRODUCTION_URL/health`
    shows ok and that one chat completion answers, before going on.

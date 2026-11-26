@@ -2,7 +2,7 @@
 """Write the nightly agent's permissions for this machine to .claude/settings.local.json (gitignored).
 
 The agent runs headless in auto permission mode; these rules allow exactly the commands and
-files bench/NIGHTLY.md, NIGHTLY_VLLM.md and EXPERIMENT.md need, with this machine's absolute paths from
+files bench/NIGHTLY.md, NIGHTLY_VLLM.md, NIGHTLY_CAPY.md, EXPERIMENT.md and RESUME.md need, with this machine's absolute paths from
 local.toml, and deny touching the production config. Run it again after changing local.toml.
 
 Usage: tools/agent_settings.py [--print]
@@ -31,6 +31,8 @@ def rules():
         "Bash(bench/bench.py *)", "Bash(python3 bench/bench.py *)", "Bash(python3 tools/results_table.py*)",
         f"Bash({sys.executable} {ROOT / 'pipeline' / 'candidates.py'} *)",
         f"Bash({sys.executable} {ROOT / 'pipeline' / 'experiments.py'} *)",
+        f"Bash({sys.executable} {ROOT / 'pipeline' / 'resume.py'} *)",
+        f"Bash({ROOT / 'tools' / 'bench_bg.sh'} *)", "Bash(tools/bench_bg.sh *)",
         "Bash(nvidia-smi*)", "Bash(curl -s 127.0.0.1:*)", "Bash(curl -s http://127.0.0.1:*)",
         f"Bash(ln -sfn {prod} {serving}/secrets/*)", "Bash(hf download *)",
         f"Bash(cd {build} && git pull && cmake --build build -j*)",
