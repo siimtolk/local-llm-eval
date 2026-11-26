@@ -15,6 +15,12 @@ everyday client gets it). --thinking off sends reasoning_effort "none" and
 chat_template_kwargs enable_thinking false, which covers llama-server and Qwen/Gemma-style templates.
 Results go to <results>/<label>.json (paths.results in local.toml, default results/). The defaults
 for --base-url and --api-key-file come from local.toml [serving] too. Stdlib only.
+
+A run has no time limit of its own. It saves after speed and after every section, and inside a section it
+keeps each answered request in <checkpoint dir>/<label>/<section>.jsonl (default <paths.state>/bench-partial):
+a run that is killed loses nothing it finished, and the same command with the same label (or --only the
+missing sections) carries on where it stopped. A section that does not apply here (no Estonian checker,
+no private fixtures) is listed under "skipped" with the date.
 """
 import argparse
 import importlib.util
@@ -29,7 +35,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(1, str(Path(__file__).resolve().parent.parent / "pipeline"))
 import config  # noqa: E402
-from harness import Client  # noqa: E402
+from harness import Checkpoint, Client  # noqa: E402
 
 
 def load_sections(path):
@@ -151,6 +157,8 @@ def main():
                          "so the headline totals of the core suite do not change")
     ap.add_argument("--only", help="comma-separated: speed and section names (default: all)")
     ap.add_argument("--model", help="sent as the request's model field (servers that require it, e.g. capy-flash)")
+    ap.add_argument("--checkpoint-dir", default=str(config.path("state") / "bench-partial"),
+                    help="where a section's finished requests are kept until it is saved; default <paths.state>/bench-partial")
     args = ap.parse_args()
     # model-written code runs with these directories hidden (cases.py reads it at import)
     os.environ.setdefault("BENCH_SANDBOX_HIDE", ":".join(config.get("bench", "sandbox_hide", [])))
@@ -225,10 +233,18 @@ def main():
     for name, section in sections.items():
         if name not in only:
             continue
+        client.checkpoint = cp = Checkpoint(Path(args.checkpoint_dir) / args.label / f"{name}.jsonl")
+        if cp.stored:
+            print(f"{name:10} resuming: {cp.stored} finished request(s) from an earlier run of this label", flush=True)
         rows = section(client, args.reps)
+        client.checkpoint = None
         if not rows:  # the section decided it does not apply (no private fixtures, no Estonian checker)
             print(f"{name:10} skipped (not applicable here)", flush=True)
+            res.setdefault("skipped", {})[name] = time.strftime("%F")
+            cp.discard()
+            save()
             continue
+        (res.get("skipped") or {}).pop(name, None)
         stored = [{k: v for k, v in r.items() if k not in QUOTING} for r in rows] if name in private else rows
         if name in extra_names:  # own-traffic (private) sections are kept apart from the synthetic extras
             res.setdefault("own_traffic" if name in private else "extra", {})[name] = stored
@@ -238,8 +254,10 @@ def main():
         fails = sorted({r["case"] for r in rows if not r["ok"]})
         print(f"{name:10} {sum(r['ok'] for r in rows)}/{len(rows)} passed | {sum(r['wall'] for r in rows):6.0f}s total | "
               f"median {statistics.median(r['wall'] for r in rows):5.1f}s per case" + (f" | out of tokens: {sum(bool(r.get('truncated')) for r in rows)}" if any(r.get("truncated") for r in rows) else "")
-              + (f" | failed: {', '.join(fails)}" if fails else ""), flush=True)
+              + (f" | failed: {', '.join(fails)}" if fails else "")
+              + (f" | {cp.hits} request(s) from the checkpoint" if cp.hits else ""), flush=True)
         save()
+        cp.discard()
     save()
     print(f"total {res['total_seconds']:.0f}s -> {out}")
 
