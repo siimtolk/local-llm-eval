@@ -5,6 +5,60 @@ the numbers behind every table are in `results/<label>.json`, summarised in the 
 Imported from the serving repo's README on 2026-10-22. "The assistant" is the owner's everyday
 chat assistant that uses the production model; `bin/...` paths refer to the serving repo.
 
+## 2026-11-26 — Inkling 2 Mini (UD-Q4_K_XL, unsloth)
+
+**Question:** how does Inkling 2 Mini (unsloth/Inkling-2-Mini-GGUF, UD-Q4_K_XL, 17.6 GB; GGUF arch `inkling2_loop`, size label 128x1.8B, 128 experts / 8 active, 24 layers with layers 6-18 looped 3 times) do on the 2026-10-18 suite against production?
+
+**Setup:** `models.d/inkling-2-mini.conf.sh` (from the Ornith MoE config, draft-file handling from the Gemma 4 QAT config), llama.cpp-next (9c003a97a), port 8085, CUDA0+CUDA1, `--ctx-size 262144 --parallel 2` (2 x 128k), q4_0 KV, `-fa on`, `--tensor-split 1,3`, `-ub 64`, `--temp 1.0 --top-p 1.0 --top-k 0 --min-p 0.0` (embedded in the GGUF), `--reasoning-effort low`, no speculative decoding, text only. Label `inkling-2-mini_q4kxl_nospec_2gpu_128k`.
+- The loop expands the 24 physical layers to 48 cache slots, so the default even split put all 15.9 GB of weights on CUDA0 (OOM). `--tensor-split 1,3` gives 7.5 / 8.8 GB.
+- Compute buffers are large for this arch: at ub 512 >13 GB on CUDA0; at ub 128 7.0 + 5.0 GB, with a CUDA OOM on the first request; at ub 64 4.7 + 2.5 GB, stable.
+- The repo's 0.5 GB DSpark drafter (`dspark-Inkling-2-Mini-Q8_0.gguf`, GGUF arch dflash, no confidence head, needs `--spec-draft-p-min 0`) loads with `--spec-type draft-dflash`. In a short A/B it accepted ~20% of drafted tokens and decode fell from 29.5 to ~26 tok/s, so the bench ran without it.
+- The full run was stopped at 03:28 by the agent harness's 2-hour limit on background commands, during the first extra section; core and speed were saved. The extras were rerun with `--only` under the same label and a 75-min cap: robust, longagent and estonian_free finished; replay, cron_replay and ctx were cut off (no results).
+
+Compared against the results file `$BASELINE` (capy / vLLM, MTP); the b11707 production figures from NIGHTLY.md (depth from `qwen3.8-27b-rvn_iq4xs_2gpu_128k_b11707_depth.json`) are in the right-hand column.
+
+| metric | candidate | baseline file | prod b11707 |
+|---|---|---|---|
+| core graded runs passed (incl. estonian) | 278/291 | 280/291 | 283/291 |
+| estonian | 44/45 | 40/45 | 41/45 |
+| uncensored answered | 8/11 (refused torrents, paywall; torrents_free declined a "malformed" magnet link) | 10/11 | 11/11 |
+| out of tokens (core + uncensored) | 0 | 4 | |
+| thinking off (tools/extract/instruct/judge/estonian) | 138/141 (47.3k output tokens) | 120/141 (8.9k tokens) | 113/141 |
+| prose / tool-JSON tok/s | 29.3 / 29.1 | 77.7 / 120.7 | 46.0 / 65.5 |
+| "30k" prompt tok/s | 301 (20.2k tokens with this tokenizer; 67 s to first token) | 2855 | 1213 |
+| two at once (total, each) | 20.5 (10.5 + 10.5) | 88.1 (85.3 + 94.8) | 69 |
+| alternating chats follow-up TTFT | 0.6 s (first turn 30.5 s) | 4.2 s | 1.3 s |
+| decode after "30k" / "90k" | 21.1 / 15.1 tok/s (at 20.3k / 61.6k tokens) | 78.3 / 68.8 | 39.0 / 26.5 |
+| suite wall-clock (speed + core) | 6605 s | 2357 s | |
+| tokens, core + uncensored | 115.3k | 164.8k | |
+| VRAM | 13.2 + 13.5 GB at 2 x 128k (nvidia-smi while serving) | | |
+
+| section | passed | failed |
+|---|---|---|
+| tools | 40/42 | two_tools (2) |
+| agent | 40/48 | remembered_pref (3), follow_up (2), torrent_pick (2), remembered_name |
+| reason | 30/30 | |
+| extract | 15/15 | |
+| code | 24/24 | |
+| hard | 48/48 | |
+| instruct | 19/21 | brief_layout (2) |
+| judge | 18/18 | |
+| estonian | 44/45 | et_number_words |
+| uncensored | 8/11 | torrents, paywall (refused), torrents_free |
+| extra: robust | 69/72 | err_find_path, err_giveup, many_history |
+| extra: longagent | 21/21 | |
+| extra: estonian_free | 34/39 | etf_term (2), etf_casual (2), etf_ticket |
+| extra: replay, cron_replay, ctx | not run | cut off by the time cap |
+
+Thinking off (`_nothink`): tools 41/42 (two_tools), extract 15/15, instruct 19/21 (brief_layout), judge 18/18, estonian 45/45 (baseline file: 39/42, 12/15, 19/21, 18/18, 32/45). The template ignores the switch: `reasoning_effort: "none"` becomes "Thinking effort level: 0" in a system message and the model still writes reasoning (47.3k output tokens against the baseline's 8.9k; this pass took 1713 s).
+
+**Observations:**
+- Decode is ~29 tok/s flat, falling to 21 / 15 tok/s with 20k / 62k tokens of context. Two requests at once add up to less than one alone (20.5 vs 29.3 tok/s). The model is spread over 349 graph splits across the two GPUs.
+- Prompt processing is ~300 tok/s at ub 64; `hard` (with the ~105k-token prompt) took 2496 s. The tokenizer (200k vocab) needs about 2/3 of the tokens Qwen does for the same text.
+- The slot cache is kept between chats (follow-up 0.6 s).
+- Uncensored: two plain refusals (torrent of a copyrighted film, paywall bypass).
+- Licence not checked (model card not read).
+
 ## 2026-11-21 — Qwen3.8-27B (Q4_K_XL, nace-ai)
 
 **Question:** how does the dense Qwen3.8-27B Q4_K_XL (nace-ai/Qwen3.8-27B-GGUF, 17.7 GB, plain decoding) do on the 2026-10-18 suite against production?
