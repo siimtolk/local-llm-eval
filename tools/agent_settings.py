@@ -45,6 +45,11 @@ def rules():
     prod_conf = a(serving / config.get("serving", "production_config"))
     deny = [f"Edit({prod_conf})", f"Write({prod_conf})", "Bash(sudo systemctl stop*)", "Bash(sudo systemctl disable*)",
             "Bash(git push --force*)", "Bash(git push -f*)", "Bash(git commit --no-verify*)", "Bash(git commit -n*)",
+            f"Bash(git -C {serving} push --force*)", f"Bash(git -C {serving} push -f*)",
+            f"Bash(git -C {serving} push *--force*)", f"Bash(git -C {serving} push * -f*)",
+            f"Bash(git -C {serving} commit --no-verify*)", f"Bash(git -C {serving} commit -n*)",
+            f"Bash(git -C {serving} commit *--no-verify*)",
+            "Bash(git push *--force*)", "Bash(git push * -f*)", "Bash(git commit *--no-verify*)",
             "Bash(rm *models/*)",
             "Bash(rm -r*models*)",
             "Bash(rm -rf*models*)",
