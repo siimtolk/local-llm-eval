@@ -50,7 +50,7 @@ class Base(unittest.TestCase):
         self.dir = Path(tempfile.mkdtemp(dir=TMP))
         with open(ROOT / "local.example.toml", "rb") as f:
             conf = tomllib.load(f)
-        conf["paths"].update(store=str(self.dir / "state" / "candidates.json"), state=str(self.dir / "state"),
+        conf["paths"].update(store=str(self.dir / "state" / "candidates.json"), runs=str(self.dir / "state" / "runs"), state=str(self.dir / "state"),
                              experiments=str(self.dir / "state" / "experiments.json"),
                              results=str(self.dir / "results"), serving=str(self.dir / "serving"))
         conf["production"]["baseline"] = "prod-base"
