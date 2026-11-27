@@ -188,7 +188,8 @@ def ready_queue(data, left, exps=None, jobs=(), runs=None):
     (key: repo), "experiment" (key: id) or "job" (key: name): higher "priority" first (set by hand to
     jump the queue; vLLM builds -1; the jobs have their own, see nightjobs.JOBS), then oldest (a
     candidate's brief date, an experiment's created); a test only while it fits the time left, a slow
-    start (vLLM/capy) only while its longer test fits."""
+    start (vLLM/capy) only while its longer test fits. runs: the resume store (resume.queued()); read here
+    when not given, so no caller can leave the resume entries out (the first night after PR #11 did)."""
     fits = lambda rec: left >= (VLLM_MIN_TEST_S if slow(rec) else MIN_TEST_S)
     models = [(-int(c.get("priority", 0)), c.get("brief", ""), "model", repo) for repo, c in data["candidates"].items()
               if c["status"] == "downloaded" and candidates.valid_repo(repo)
@@ -196,7 +197,7 @@ def ready_queue(data, left, exps=None, jobs=(), runs=None):
     exp = [(-int(e.get("priority", 0)), e.get("created", ""), "experiment", eid)
            for eid, e in ((exps or {}).get("experiments") or {}).items()
            if e.get("status") == "queued" and e.get("type") in experiments.TYPES and experiments.ID.fullmatch(eid) and fits(e)]
-    runs = runs or {}
+    runs = resume.queued() if runs is None else runs
     res = [(-max(int(runs[l].get("priority", 0)) for l in labels), min(runs[l].get("created", "") for l in labels), "resume", first)
            for first, labels in resume_groups(runs).items()
            if not any(runs[l].get("running") for l in labels) and weights_ready(runs[first]) and fits(runs[first])]
@@ -329,7 +330,7 @@ def model_test(now=False, end=None):
     try:
         while (left := int((end - config.now()).total_seconds()) - RESTORE_S) >= min(MIN_TEST_S, nightjobs.MIN_S):
             with candidates.store(readonly=True) as data, experiments.store(readonly=True) as exps:
-                ready = ready_queue(data, left, exps, nightjobs.due(left))
+                ready = ready_queue(data, left, exps, nightjobs.due(left), resume.queued())
             if not ready:
                 return
             kind, key = ready[0][2], ready[0][-1]

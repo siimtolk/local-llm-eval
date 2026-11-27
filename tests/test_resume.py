@@ -95,7 +95,7 @@ class Base(unittest.TestCase):
         self.dir = Path(tempfile.mkdtemp(dir=TMP))
         with open(ROOT / "local.example.toml", "rb") as f:
             conf = tomllib.load(f)
-        conf["paths"].update(store=str(self.dir / "state" / "candidates.json"), state=str(self.dir / "state"),
+        conf["paths"].update(store=str(self.dir / "state" / "candidates.json"), runs=str(self.dir / "state" / "runs"), state=str(self.dir / "state"),
                              experiments=str(self.dir / "state" / "experiments.json"),
                              results=str(self.dir / "results"), serving=str(self.dir / "serving"),
                              models=str(self.dir / "models"))
@@ -185,6 +185,25 @@ class RunnerTest(Base):
         self.assertIn("RESUME.md", prompt)
         self.assertIn(f"--label {MAIN}_nothink", prompt)
         self.assertIn("$BENCH_STOP_AT", prompt)
+
+    def test_the_nightly_loop_runs_a_resume_entry_before_night_jobs(self):
+        """model_test itself (not only the dry run) must see the resume store: the first night after PR #11 it did not."""
+        (self.dir / "models" / "model-27b").mkdir(parents=True)
+        (self.dir / "models" / "model-27b" / "w.gguf").write_text("x")
+        resume.add(MAIN, model="model-27b", priority=10)  # as inkling / glimmer were queued
+        ran = []
+        job = [(-5, "", "job", "log-triage")]
+
+        def run_job(key, end):
+            ran.append(("job", key))
+            if len(ran) > 3:
+                raise RuntimeError("the loop keeps taking the job: the resume entry was never picked")
+        with mock.patch.object(runner, "test_resume", side_effect=lambda key, end, early=False: ran.append(("resume", key)) or True), \
+                mock.patch.object(runner.nightjobs, "due", return_value=job), \
+                mock.patch.object(runner.nightjobs, "run_job", side_effect=run_job), \
+                mock.patch.object(runner, "hold_for_builds"):
+            runner.model_test(now=True, end=runner.deadline())
+        self.assertEqual(ran[0], ("resume", MAIN))
 
     def test_resume_run_updates_queue_and_candidate_summary(self):
         with candidates.store() as data:
