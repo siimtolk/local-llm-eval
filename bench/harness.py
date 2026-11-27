@@ -27,7 +27,7 @@ class Checkpoint:
         if self.path.exists() and time.time() - self.path.stat().st_mtime > CHECKPOINT_DAYS * 86400:
             self.path.unlink()
         if self.path.exists():
-            for line in self.path.read_text().splitlines():
+            for line in self.path.read_text(errors="replace").splitlines():
                 try:
                     rec = json.loads(line)
                     self.cache.setdefault(rec["key"], []).append(rec["out"])
@@ -88,6 +88,9 @@ class Client:
         except urllib.error.HTTPError as e:  # e.g. a prompt longer than the server's context: the case fails, the run goes on
             out = {"choices": [{"message": {"content": ""}, "finish_reason": "error"}],
                    "error": f"HTTP {e.code}: {e.read().decode(errors='replace')[:300]}"}
+        except (TimeoutError, json.JSONDecodeError) as e:  # one slow or garbled reply: the case fails, the run goes on
+            out = {"choices": [{"message": {"content": ""}, "finish_reason": "error"}],
+                   "error": f"{type(e).__name__}: {str(e)[:300]}"}
         out["_wall"] = time.time() - t0
         out["_truncated"] = out["choices"][0].get("finish_reason") == "length"
         if cp and "error" not in out:
@@ -110,7 +113,10 @@ class Client:
                 line = line.strip()
                 if not line.startswith(b"data:") or line == b"data: [DONE]":
                     continue
-                ev = json.loads(line[5:])
+                try:
+                    ev = json.loads(line[5:])
+                except ValueError:  # a malformed event: skip it
+                    continue
                 usage = ev.get("usage") or usage
                 timings = ev.get("timings") or timings
                 delta = (ev.get("choices") or [{}])[0].get("delta") or {}
