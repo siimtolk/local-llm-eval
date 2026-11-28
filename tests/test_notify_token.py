@@ -50,9 +50,26 @@ class TokenTest(unittest.TestCase):
             self.assertEqual(notify.post_json(self.url, {}), {})
 
     def test_without_token_401(self):
-        with self.cfg(""), self.assertRaises(urllib.error.HTTPError) as e:
+        with self.cfg(""), mock.patch.object(notify, "default_token_file", lambda url: None), self.assertRaises(urllib.error.HTTPError) as e:
             notify.post_json(self.url, {})
         self.assertEqual(e.exception.code, 401)
+
+    def test_default_from_store(self):
+        """No token_file: the token next to the store's Hermes home is used for a localhost bridge."""
+        with tempfile.TemporaryDirectory() as d:
+            home = Path(d)
+            (home / "state").mkdir()
+            tok = home / notify.BRIDGE_TOKEN
+            tok.parent.mkdir(parents=True)
+            tok.write_text(TOKEN + "\n")
+            with self.cfg(""), mock.patch.object(notify.config, "path", lambda k, base=None: home / "state" / "store.json"):
+                self.assertEqual(notify.post_json(self.url, {}), {})
+                self.assertIsNone(notify.default_token_file("http://example.org/send"))
+
+    def test_default_missing(self):
+        with tempfile.TemporaryDirectory() as d, \
+                mock.patch.object(notify.config, "path", lambda k, base=None: Path(d) / "state" / "store.json"):
+            self.assertIsNone(notify.default_token_file(self.url))
 
     def test_unreadable(self):
         with self.cfg("/nonexistent/tok"), self.assertRaises(OSError) as e:

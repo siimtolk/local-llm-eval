@@ -8,15 +8,32 @@ gets the text on stdin, or stdout. The chat ids and the bridge address live only
 import json
 import os
 import subprocess
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
 import config
 
 
+BRIDGE_TOKEN = Path("whatsapp") / "session" / ".bridge-token"  # where the Hermes WhatsApp gateway keeps it
+
+
+def default_token_file(url):
+    """No [notify] token_file: for a bridge on localhost, the token the Hermes gateway keeps next to the
+    candidate store (paths.store lives in <hermes home>/state/, the token in <hermes home>/whatsapp/session/).
+    None when that file is not there (then no header is sent, as before)."""
+    if urllib.parse.urlsplit(url).hostname not in ("127.0.0.1", "localhost", "::1"):
+        return None
+    try:
+        f = config.path("store").parent.parent / BRIDGE_TOKEN
+    except (TypeError, KeyError):
+        return None
+    return str(f) if f.is_file() else None
+
+
 def post_json(url, payload, timeout=60):
     headers = {"Content-Type": "application/json"}
-    tf = config.get("notify", "token_file")
+    tf = config.get("notify", "token_file") or default_token_file(url)
     if tf:
         try:
             headers["Authorization"] = "Bearer " + Path(os.path.expanduser(tf)).read_text().strip()
