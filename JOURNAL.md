@@ -1505,6 +1505,14 @@ Per section (passed / runs):
 | instruct | **21/21** | 18/21 | 18/21 | 16/21 |
 | judge | 18/18 | 18/18 | 18/18 | 18/18 |
 | estonian | 41/45 | 41/45 | **42/45** | 29/45 |
+| extra: robust (prod: capy, effort low) | 65/72 | **66/72** | | |
+| extra: longagent | **21/21** | 20/21 | | |
+| extra: estonian_free | 30/39 | **35/39** | | |
+| replay | **114/180** | 64/180 | | |
+| cron_replay | 21/36 | **30/36** | | |
+| ctx | **33/45** | 16/45 | | |
+
+**Resumed 2026-11-28:** robust, longagent, estonian_free, replay, cron_replay and ctx with `--only` under the same label (started by hand in the daytime, 11:00-12:51, exit 0, 6631 s). Served with the same config and files, but on llama.cpp-next b12765 (9c003a97a) instead of b11707, so these sections come from a newer build than the core numbers above. No run truncated. `$BASELINE`'s result file has no `extra`/`own_traffic` keys, so the production column for these rows is the production model on capy at effort low (`exp-20261027-extras-quasar-capy-low`). Failed cases: robust destr_backups (3), err_denied, err_giveup, many_reschedule (prod: err_retry 2, err_giveup 2, err_denied, many_reschedule 2); longagent la_log_stats; estonian_free etf_proofread (2), etf_friend, etf_term; replay 116 failed runs, 47 of 60 cases at least once (terminal 47 runs, patch 12, read_file 10, skill_view 9, web_extract 9, tool_call 7, web_search 6, others); cron_replay hn-brief (3), conversation-starters, procurement-brief, tech-brief; ctx no_tool_math, two_tools, cron_weekdays, delete_tmp, fix_bug (3 each), typos, duplicates, remembered_pref, follow_up (2 each), light, three_tools, ask_first, config_edit, reconcile, torrent_pick. Nothing is missing now (`resume.py missing`).
 
 **Takeaways:**
 - 19 graded runs below production, so not a replacement; the result matches 2026-10-19 within
