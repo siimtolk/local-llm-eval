@@ -48,9 +48,13 @@ Compared against the results file `$BASELINE` (capy / vLLM, MTP); the b11707 pro
 | extra: robust | 69/72 | err_find_path, err_giveup, many_history |
 | extra: longagent | 21/21 | |
 | extra: estonian_free | 34/39 | etf_term (2), etf_casual (2), etf_ticket |
-| extra: replay, cron_replay, ctx | not run | cut off by the time cap |
+| extra: replay | 85/180 | 37 of 60 cases at least once (mostly terminal calls; also read_file, patch, web_search, web_extract, skill_view) |
+| extra: cron_replay | 27/36 | conversation-starters (3), hn-brief (3), tech-brief (3) |
+| extra: ctx | 15/45 | light, no_tool_math, two_tools, cron_weekdays, typos, config_edit, remembered_pref, torrent_pick (3 each), duplicates (2), ask_first, delete_tmp, reconcile, follow_up |
 
 Thinking off (`_nothink`): tools 41/42 (two_tools), extract 15/15, instruct 19/21 (brief_layout), judge 18/18, estonian 45/45 (baseline file: 39/42, 12/15, 19/21, 18/18, 32/45). The template ignores the switch: `reasoning_effort: "none"` becomes "Thinking effort level: 0" in a system message and the model still writes reasoning (47.3k output tokens against the baseline's 8.9k; this pass took 1713 s).
+
+**Resumed 2026-11-28:** replay, cron_replay and ctx with `--only` under the same label, served as above (same config, llama.cpp-next 9c003a97a, same files; VRAM 13.2 + 13.4 GB). One run, 01:51-05:04, exit 0 (replay 8395 s, median 15.6 s/case; cron_replay 1341 s; ctx 1808 s); no run out of tokens or truncated. `$BASELINE`'s result file has no `extra`/`own_traffic` keys; the nearest production figures are from the production model on capy at effort low (`exp-20261027-extras-quasar-capy-low`): replay 114/180, cron_replay 21/36, ctx 33/45 (the older production baseline there: 107/180, 21/36, 32/45). Candidate: replay 85/180, cron_replay 27/36, ctx 15/45. Nothing is missing now (`resume.py missing`: nothing missing).
 
 **Observations:**
 - Decode is ~29 tok/s flat, falling to 21 / 15 tok/s with 20k / 62k tokens of context. Two requests at once add up to less than one alone (20.5 vs 29.3 tok/s). The model is spread over 349 graph splits across the two GPUs.
